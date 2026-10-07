@@ -88,9 +88,20 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .screen canvas{display:block;width:100%;height:100%}
 .screen .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.18) 1px,transparent 1px);mix-blend-mode:multiply}
 .screen .glow{position:absolute;inset:0;box-shadow:0 0 40px 6px rgba(255,255,255,.15)}
-.real{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;display:none}
-.stage.ready .real{display:block}.stage.ready .screen{visibility:hidden}
-.stage.dragging .real{display:none}.stage.dragging .screen{visibility:visible}
+.mark{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.mark polygon{fill:color-mix(in srgb,var(--accent) 28%,transparent);stroke:var(--accent);stroke-width:3;stroke-linejoin:round;paint-order:stroke}
+.mark rect{fill:var(--accent)}.mark text{fill:#fff;font:800 13px var(--font)}
+.drop{border:2px dashed #c3c9d8;border-radius:16px;background:var(--bg);padding:36px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.drop>svg{width:46px;height:46px;color:var(--accent)}
+.drop b{font-size:19px}.drop span{color:var(--soft);max-width:44ch}.drop small{color:var(--faint);margin-top:6px}
+.drop .btn{margin-top:8px}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.opt{color:var(--faint);font-weight:600}
+.artrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.artrow img{height:44px;max-width:90px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff}
+label.offer{cursor:pointer}
+.offer input{width:22px;height:22px;accent-color:var(--accent);flex:none}
+.offer.off{opacity:.6}
 .seg{display:inline-flex;border:1.5px solid #cfd3df;border-radius:11px;overflow:hidden;background:#fff}
 .seg button{border:0;background:none;padding:9px 16px;font-weight:700;color:var(--soft);display:flex;align-items:center;gap:6px}
 .seg button.on{background:var(--accent);color:var(--accent-ink)}
@@ -217,7 +228,7 @@ footer{color:var(--faint);font-size:13px;padding-block:24px 40px;text-align:cent
 <main>
   <nav class="steps" aria-label="Steps">
     <button data-step="1" class="on"><b>1</b><span>Size &amp; type</span></button>
-    <button data-step="2"><b>2</b><span>See it on your site</span></button>
+    <button data-step="2"><b>2</b><span>Where it's going</span></button>
     <button data-step="3"><b>3</b><span>Your estimate</span></button>
   </nav>
 
@@ -249,32 +260,43 @@ footer{color:var(--faint);font-size:13px;padding-block:24px 40px;text-align:cent
       <span class="lbl">Choose a screen</span>
       <div class="products" id="products"></div>
     </div>
-    <div class="navrow"><span></span><button class="btn primary big" data-go="2">Next: see it on your site →</button></div>
+    <div class="navrow"><span></span><button class="btn primary big" data-go="2">Next: show us where it's going →</button></div>
   </section>
 
   <!-- STEP 2 -->
   <section class="card" id="step2" hidden>
-    <h2>See it on your site</h2>
-    <p class="hint">Upload a photo of the wall or shop front, then drag the four blue dots to where the corners of the screen should be.</p>
-    <div class="stagebox"><div class="stage" id="stage"><div class="screen" id="screen"><canvas id="screenCanvas"></canvas><div class="grid" id="grid"></div><div class="glow"></div></div><canvas class="real" id="real" aria-hidden="true"></canvas></div></div>
-    <div class="toolbar">
-      <label class="btn primary" for="photoPick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>Upload your photo</label>
-      <input type="file" id="photoPick" accept="image/*" hidden>
-      <button class="btn" id="samplePhoto">Use example photo</button>
-      <button class="btn" id="resetQuad">Reset screen position</button>
+    <h2>Show us where it's going</h2>
+    <p class="hint">Upload a photo of the wall or shop front and drag the corners of the blue box to where the screen should go. Our design team uses this to make you a free, photo-realistic image of your new screen.</p>
+    <div class="drop" id="drop">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>
+      <b>Upload a photo of your site</b>
+      <span>Stand where people will see the screen and take it straight on, in good light.</span>
+      <label class="btn primary big" for="photoPick">Choose a photo</label>
+      <small>Drag and drop works too. No photo yet? You can skip this step and send one later.</small>
     </div>
-    <div class="section"><span class="lbl">What's on the screen?</span><div class="thumbs" id="thumbs"></div><input type="file" id="artPick" accept="image/*" hidden></div>
+    <div class="stagebox" id="stagebox" hidden><div class="stage" id="stage"><svg class="mark" id="mark" aria-hidden="true"><polygon id="markPoly"/><g id="markTag"><rect rx="8"/><text text-anchor="middle" dominant-baseline="central"></text></g></svg></div></div>
+    <input type="file" id="photoPick" accept="image/*" hidden>
+    <div class="toolbar" id="photoTools" hidden>
+      <label class="btn" for="photoPick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>Change photo</label>
+      <button class="btn" id="resetQuad">Reset the box</button>
+      <span class="note" style="margin:0">Tip: line the corners up with the edges of the wall or sign.</span>
+    </div>
+    <div class="form section">
+      <div class="full"><label for="sNotes">Anything about the position? <span class="opt">(optional)</span></label><textarea id="sNotes" placeholder="e.g. above the main entrance, replacing the existing sign, bottom edge 2.5 m off the ground"></textarea></div>
+    </div>
     <div class="section look">
-      <div><span class="lbl">Time of day</span><div class="seg" role="group" aria-label="Time of day"><button id="dayBtn" class="on" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Day</button><button id="nightBtn" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>Night</button></div></div>
-      <div style="flex:1;min-width:220px;max-width:380px"><div class="rangeval"><label class="lbl" for="bright" style="margin:0">Screen brightness</label><output id="brightOut"></output></div><input type="range" id="bright" min="60" max="140" value="105"></div>
+      <div><span class="lbl">What would you show on it? <span class="opt">(optional)</span></span>
+        <div class="artrow"><button class="btn" id="artBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg><span id="artLabel">Add your logo or artwork</span></button><img id="artThumb" alt="" hidden><button class="linkbtn" id="artClear" hidden>Remove</button></div>
+        <input type="file" id="artPick" accept="image/*" hidden></div>
+      <div><span class="lbl">Show my render in</span><div class="seg" role="group" aria-label="Time of day"><button id="dayBtn" class="on" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Daylight</button><button id="nightBtn" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>Night</button></div></div>
     </div>
-    <div class="offer" id="renderOffer">
+    <label class="offer" id="renderOffer">
+      <input type="checkbox" id="fRender2">
       <div class="offer-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15l-1.8-4.4L5.5 9l4.7-1.4z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg></div>
-      <div class="offer-tx"><b>Want to see it for real?</b><p>Upload a photo of your site and our design team will turn it into a <b>photo-realistic image</b> of your new screen, free, <span class="turn"></span>.</p></div>
-      <button class="btn primary" id="offerBtn">Request a realistic render →</button>
-    </div>
-    <p class="note">Your photo stays on your device. It's only sent to us if you request an estimate or a render.</p>
-    <div class="navrow"><button class="btn" data-go="1">← Back</button><button class="btn primary big" data-go="3">Next: your estimate →</button></div>
+      <div class="offer-tx"><b>Yes, send me a free photo-realistic image</b><p id="offerText">Our design team will put your new screen into your photo and email it to you, <span class="turn"></span>.</p></div>
+    </label>
+    <p class="note">Your photo is only sent to us when you submit your details on the next step.</p>
+    <div class="navrow"><button class="btn" data-go="1">← Back</button><button class="btn primary big" data-go="3" id="next2">Next: your estimate →</button></div>
   </section>
 
   <!-- STEP 3 -->
@@ -292,8 +314,8 @@ footer{color:var(--faint);font-size:13px;padding-block:24px 40px;text-align:cent
         <div><label for="fPostcode">Site postcode</label><input id="fPostcode" autocomplete="postal-code"></div>
         <div></div>
         <div class="full"><label for="fMsg">Anything else we should know?</label><textarea id="fMsg" placeholder="Deadline, budget, access, what you'll show on it…"></textarea></div>
-        <div class="full render-opt" id="renderOpt"><label class="consent"><input type="checkbox" id="fRender"><span><b>Yes, send me a free photo-realistic render</b> of the screen on my photo, <span class="turn"></span>.</span></label>
-          <p class="warn" id="renderWarn" hidden>To make your render we need a real photo of your site. <button type="button" class="linkbtn" data-go="2">Go back and upload a photo</button></p></div>
+        <div class="full render-opt" id="renderOpt"><label class="consent"><input type="checkbox" id="fRender"><span><b>Yes, send me a free photo-realistic image</b> of the screen on my photo, <span class="turn"></span>.</span></label>
+          <p class="warn" id="renderWarn" hidden>To make your image we need a photo of your site. <button type="button" class="linkbtn" data-go="2">Go back and upload a photo</button></p></div>
         <label class="consent full"><input type="checkbox" id="fConsent"><span>I'm happy for <b id="consentName"></b> to contact me about this estimate.</span></label>
         <div class="full"><button class="btn primary big" id="submitBtn" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download my PDF estimate</button>
           <div class="err" id="formErr" hidden></div></div>
@@ -338,16 +360,16 @@ footer{color:var(--faint);font-size:13px;padding-block:24px 40px;text-align:cent
 </form>
 <form name="led-enquiry" data-netlify="true" netlify-honeypot="bot-field" hidden>
   <input name="bot-field"><input name="subject"><input name="ref"><input name="render"><input name="name"><input name="company"><input name="email"><input name="phone"><input name="postcode">
-  <textarea name="message"></textarea><input name="screen"><input name="size"><input name="estimate"><input name="time_of_day"><input name="photo_link"><input name="mockup_link"><input name="admin_link">
+  <textarea name="message"></textarea><input name="screen"><input name="size"><input name="estimate"><input name="time_of_day"><input name="placement"><input name="photo_link"><input name="mockup_link"><input name="artwork_link"><input name="admin_link">
 </form>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="/assets/led.js"></script>
 <script>
-const {esc,num,money,fmt,calc,recommend,matrix3d,homography,renderMockup,sampleContent,imageToCanvas,sampleSite,buildPdf}=LED;
+const {esc,num,money,fmt,calc,recommend,sampleContent,imageToCanvas,buildPdf}=LED;
 const $=id=>document.getElementById(id);
 let CFG=null, step=1;
-const S={env:"indoor",width:3,height:1.7,distance:4,productId:null,extras:{},quad:null,photo:null,photoIsSample:true,art:"brand",artImg:null,brightness:1.05,night:false};
+const S={env:"indoor",width:3,height:1.7,distance:4,productId:null,extras:{},quad:null,photo:null,photoIsSample:true,artImg:null,night:false};
 let lastPdf=null;
 
 /* ---------- start ---------- */
@@ -368,9 +390,7 @@ let lastPdf=null;
   if(!CFG.products.some(p=>p.visible!==false&&p.environment==="indoor"))S.env="outdoor";
   $("w").value=S.width;$("h").value=S.height;$("dist").value=S.distance;
   S.productId=recommend(CFG,S.env,S.distance);
-  setPhoto(sampleSite(S.env),true);
-  renderStep1();renderThumbs();refresh();syncRenderUi();renderNext();
-  $("offerBtn").textContent="Upload your photo to request a render";
+  renderStep1();refresh();syncRenderUi();renderNext();
 })();
 
 /* ---------- step 1 ---------- */
@@ -384,7 +404,7 @@ function renderStep1(){
   $("distOut").textContent=S.distance+" m";
 }
 document.addEventListener("click",e=>{
-  const env=e.target.closest(".env");if(env){S.env=env.dataset.env;S.productId=recommend(CFG,S.env,S.distance);S.extras={};if(S.photoIsSample)setPhoto(sampleSite(S.env),true);renderStep1();refresh();return;}
+  const env=e.target.closest(".env");if(env){S.env=env.dataset.env;S.productId=recommend(CFG,S.env,S.distance);S.extras={};renderStep1();refresh();return;}
   const ch=e.target.closest(".chip");if(ch){S.width=+ch.dataset.w;S.height=+ch.dataset.h;$("w").value=S.width;$("h").value=S.height;resetQuad();refresh();return;}
   const pr=e.target.closest(".prod");if(pr){S.productId=pr.dataset.p;renderStep1();refresh();return;}
   const go=e.target.closest("[data-go]");if(go){goStep(+go.dataset.go);return;}
@@ -402,7 +422,7 @@ function goStep(n){
   step=n;[1,2,3].forEach(i=>$("step"+i).hidden=i!==n);
   document.querySelectorAll(".steps button").forEach(b=>{const i=+b.dataset.step;b.classList.toggle("on",i===n);b.classList.toggle("done",i<n);});
   if(n===2)layoutStage();
-  if(n===3){renderEstimate();if(!$("fRender").dataset.touched&&!S.photoIsSample&&renderOn())$("fRender").checked=true;syncRenderUi();}
+  if(n===3){renderEstimate();syncRenderUi();}
   refresh();window.scrollTo({top:document.querySelector(".layout").offsetTop-60,behavior:"smooth"});
 }
 
@@ -415,98 +435,118 @@ function refresh(){
   $("sumList").innerHTML=[["Screen",q.product.name],["Actual size",`${fmt(q.width)} × ${fmt(q.height)} m`],["Area",`${fmt(q.area)} m²`],["Panels",`${q.cols} × ${q.rows}`],["Resolution",`${q.resW} × ${q.resH}`],["Typical power",`${fmt(q.powerAvg/1000,1)} kW`]].map(([a,b])=>`<dt>${a}</dt><dd>${esc(b)}</dd>`).join("");
   const changed=Math.abs(q.width-S.width)>0.005||Math.abs(q.height-S.height)>0.005;
   $("sizeNote").innerHTML=changed?`Screens are built from ${q.product.cabinetW}×${q.product.cabinetH} mm panels, so the nearest size is <b>${fmt(q.width)} × ${fmt(q.height)} m</b> (${q.cols} × ${q.rows} panels).`:`That's exactly ${q.cols} × ${q.rows} panels.`;
-  $("sumNext").textContent=step===1?"Next: see it on your site →":step===2?"Next: your estimate →":"Download my PDF estimate";
+  $("sumNext").textContent=step===1?"Next: show us where it's going →":step===2?"Next: your estimate →":"Download my PDF estimate";
   $("sumNext").onclick=()=>step<3?goStep(step+1):$("form").requestSubmit();
   if(step===3)renderEstimate();
   drawMini();updateScreen();
 }
 
-/* ---------- mockup ---------- */
+/* ---------- step 2: photo + marked position ---------- */
 const stage=$("stage");let photoEl=null;
-function setPhoto(src,isSample){
-  S.photoIsSample=isSample;
-  if(photoEl)photoEl.remove();
-  if(src instanceof HTMLCanvasElement){photoEl=src;src.className="bg";S.photo=src;}
-  else{photoEl=src;S.photo=src;}
-  stage.prepend(photoEl);S.quad=null;resetQuad();
+function hasPhoto(){return !!S.photo&&!S.photoIsSample;}
+function setPhoto(img){
+  S.photoIsSample=false;S.photo=img;
+  if(photoEl)photoEl.remove();photoEl=img;img.className="bg";img.alt="Your site photo";stage.prepend(img);
+  $("drop").hidden=true;$("stagebox").hidden=false;$("photoTools").hidden=false;
+  if(renderOn()&&!$("fRender").dataset.touched)setRender(true);
+  S.quad=null;resetQuad();syncRenderUi();drawMini();
 }
 function defaultQuad(){
   const q=Q(),pw=S.photo.naturalWidth||S.photo.width,ph=S.photo.naturalHeight||S.photo.height,photoAspect=pw/ph;
-  let w=.56,h=w*photoAspect/q.aspect;if(h>.56){h=.56;w=h*q.aspect/photoAspect;}
-  const cx=.5,cy=S.env==="indoor"?.38:.36;
+  let w=.5,h=w*photoAspect/q.aspect;if(h>.5){h=.5;w=h*q.aspect/photoAspect;}
+  const cx=.5,cy=.42;
   return [[cx-w/2,cy-h/2],[cx+w/2,cy-h/2],[cx+w/2,cy+h/2],[cx-w/2,cy+h/2]];
 }
-function resetQuad(){if(!S.photo)return;S.quad=defaultQuad();layoutStage();}
+function resetQuad(){if(!S.photo)return;S.quad=defaultQuad();layoutStage();drawMini();}
 $("resetQuad").onclick=resetQuad;
-$("samplePhoto").onclick=()=>setPhoto(sampleSite(S.env),true);
-$("photoPick").onchange=()=>{const f=$("photoPick").files[0];if(!f)return;const img=new Image();img.onload=()=>{setPhoto(img,false);drawMini();$("offerBtn").textContent="Request a realistic render →";};img.onerror=()=>alertMsg("That photo couldn't be opened. Try a JPG or PNG.");img.src=URL.createObjectURL(f);$("photoPick").value="";};
-function alertMsg(m){$("formErr").textContent=m;}
+function loadPhoto(f){
+  if(!f||!/^image\//.test(f.type))return;
+  const img=new Image();img.onload=()=>setPhoto(img);
+  img.onerror=()=>{$("drop").querySelector("small").textContent="That photo couldn't be opened. Please try a JPG or PNG.";};
+  img.src=URL.createObjectURL(f);
+}
+$("photoPick").onchange=()=>{loadPhoto($("photoPick").files[0]);$("photoPick").value="";};
+["dragenter","dragover"].forEach(t=>$("drop").addEventListener(t,e=>{e.preventDefault();$("drop").classList.add("over");}));
+["dragleave","drop"].forEach(t=>$("drop").addEventListener(t,e=>{e.preventDefault();$("drop").classList.remove("over");}));
+$("drop").addEventListener("drop",e=>loadPhoto(e.dataTransfer.files[0]));
 
 let handles=[];
 function layoutStage(){
   if(!S.photo||!S.quad)return;
-  if(!handles.length){for(let i=0;i<4;i++){const h=document.createElement("div");h.className="handle";h.tabIndex=0;h.setAttribute("role","slider");h.setAttribute("aria-label",["Top left","Top right","Bottom right","Bottom left"][i]+" corner");stage.appendChild(h);handles.push(h);dragify(h,i);}}
+  if(!handles.length){for(let i=0;i<4;i++){const h=document.createElement("div");h.className="handle";h.tabIndex=0;h.setAttribute("role","slider");h.setAttribute("aria-label",["Top left","Top right","Bottom right","Bottom left"][i]+" corner of the screen");stage.appendChild(h);handles.push(h);dragify(h,i);}}
   updateScreen();
 }
-function art(){
-  const q=Q();
-  if(S.art==="upload"&&S.artImg)return imageToCanvas(S.artImg,q.aspect);
-  return sampleContent(S.art,q.aspect,CFG.settings.companyName,CFG.settings.accent);
-}
-let artCache={key:"",c:null};
-function artCanvas(){const q=Q();const key=S.art+"|"+q.aspect.toFixed(3)+"|"+(S.artImg?S.artImg.src:"");if(artCache.key!==key){artCache={key,c:art()};}return artCache.c;}
+function sizeLabel(){const q=Q();return `Screen · ${fmt(q.width)} × ${fmt(q.height)} m`;}
 function updateScreen(){
   if(!S.photo||!S.quad||!stage.clientWidth)return;
-  const W=stage.clientWidth,H=stage.clientHeight,c=artCanvas(),sc=$("screenCanvas");
-  if(sc.width!==c.width||sc.height!==c.height){sc.width=c.width;sc.height=c.height;}
-  sc.getContext("2d").drawImage(c,0,0);
-  const el=$("screen");el.style.width=c.width+"px";el.style.height=c.height+"px";
-  const pts=S.quad.map(([x,y])=>[x*W,y*H]);
-  el.style.transform=matrix3d(homography(c.width,c.height,pts));
-  el.style.filter=`brightness(${S.brightness})`;
-  const q=Q();$("grid").style.backgroundSize=`${c.width/q.cols}px ${c.height/q.rows}px`;
+  const W=stage.clientWidth,H=stage.clientHeight,pts=S.quad.map(([x,y])=>[x*W,y*H]);
+  $("mark").setAttribute("viewBox",`0 0 ${W} ${H}`);
+  $("markPoly").setAttribute("points",pts.map(p=>p.join(",")).join(" "));
+  const cx=pts.reduce((a,p)=>a+p[0],0)/4,cy=pts.reduce((a,p)=>a+p[1],0)/4,t=$("markTag").querySelector("text"),r=$("markTag").querySelector("rect");
+  t.textContent=sizeLabel();t.setAttribute("x",cx);t.setAttribute("y",cy);
+  const tw=t.getComputedTextLength?t.getComputedTextLength():120;r.setAttribute("x",cx-tw/2-10);r.setAttribute("y",cy-14);r.setAttribute("width",tw+20);r.setAttribute("height",28);
   handles.forEach((h,i)=>{h.style.left=pts[i][0]+"px";h.style.top=pts[i][1]+"px";});
-  if(!stage.classList.contains("dragging"))renderRealSoon();
-}
-function mockOpts(maxSize){const q=Q();return {maxSize,brightness:S.brightness,night:S.night,cols:q.cols,rows:q.rows};}
-let realT=null;function renderRealSoon(){clearTimeout(realT);realT=setTimeout(renderReal,60);}
-function renderReal(){
-  if(!S.photo||!S.quad||!stage.clientWidth)return;
-  try{const m=renderMockup(S.photo,artCanvas(),S.quad,mockOpts(Math.min(1800,Math.round(stage.clientWidth*(window.devicePixelRatio||1)*1.1))));
-    const cv=$("real");cv.width=m.width;cv.height=m.height;cv.getContext("2d").drawImage(m,0,0);stage.classList.add("ready");}catch(e){stage.classList.remove("ready");}
 }
 function dragify(h,i){
-  h.addEventListener("pointerdown",e=>{e.preventDefault();h.setPointerCapture(e.pointerId);stage.classList.add("dragging");
+  h.addEventListener("pointerdown",e=>{e.preventDefault();h.setPointerCapture(e.pointerId);
     const move=ev=>{const r=stage.getBoundingClientRect();S.quad[i]=[Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))];updateScreen();};
-    const up=()=>{h.removeEventListener("pointermove",move);h.removeEventListener("pointerup",up);stage.classList.remove("dragging");renderReal();drawMini();};
+    const up=()=>{h.removeEventListener("pointermove",move);h.removeEventListener("pointerup",up);drawMini();};
     h.addEventListener("pointermove",move);h.addEventListener("pointerup",up);});
-  h.addEventListener("keydown",e=>{const d={ArrowLeft:[-.005,0],ArrowRight:[.005,0],ArrowUp:[0,-.005],ArrowDown:[0,.005]}[e.key];if(!d)return;e.preventDefault();S.quad[i]=[S.quad[i][0]+d[0],S.quad[i][1]+d[1]];updateScreen();drawMini();});
+  h.addEventListener("keydown",e=>{const d={ArrowLeft:[-.005,0],ArrowRight:[.005,0],ArrowUp:[0,-.005],ArrowDown:[0,.005]}[e.key];if(!d)return;e.preventDefault();S.quad[i]=[S.quad[i][0]+d[0],S.quad[i][1]+d[1]];updateScreen();drawMiniSoon();});
 }
 new ResizeObserver(()=>updateScreen()).observe(stage);
 
-// content thumbnails
-function renderThumbs(){
-  const items=[["brand","Your brand"],["sale","Sale"],["menu","Menu board"]];
-  $("thumbs").innerHTML=items.map(([k,n])=>`<button class="thumb ${S.art===k?"on":""}" data-art="${k}"><canvas width="220" height="124"></canvas><span>${n}</span></button>`).join("")+
-    `<button class="thumb ${S.art==="upload"?"on":""}" data-art="upload">${S.artImg?`<img class="up" src="${esc(S.artImg.src)}" alt="">`:'<span class="up">＋</span>'}<span>${S.artImg?"Your image":"Upload image"}</span></button>`;
-  $("thumbs").querySelectorAll("canvas").forEach((cv,i)=>{const c=sampleContent(items[i][0],16/9,CFG.settings.companyName,CFG.settings.accent);cv.getContext("2d").drawImage(c,0,0,cv.width,cv.height);});
-}
-$("thumbs").addEventListener("click",e=>{const t=e.target.closest("[data-art]");if(!t)return;
-  if(t.dataset.art==="upload"&&!S.artImg){$("artPick").click();return;}
-  if(t.dataset.art==="upload"&&S.artImg&&S.art==="upload"){$("artPick").click();return;}
-  S.art=t.dataset.art;renderThumbs();updateScreen();drawMini();});
-$("artPick").onchange=()=>{const f=$("artPick").files[0];if(!f)return;const img=new Image();img.onload=()=>{S.artImg=img;S.art="upload";renderThumbs();updateScreen();drawMini();};img.src=URL.createObjectURL(f);$("artPick").value="";};
-$("bright").oninput=()=>{S.brightness=$("bright").value/100;$("brightOut").textContent=$("bright").value+"%";updateScreen();drawMiniSoon();};
-$("brightOut").textContent=$("bright").value+"%";
-function setNight(n){S.night=n;$("dayBtn").classList.toggle("on",!n);$("nightBtn").classList.toggle("on",n);$("dayBtn").setAttribute("aria-pressed",!n);$("nightBtn").setAttribute("aria-pressed",n);renderReal();drawMini();}
+// optional artwork for the design team
+$("artBtn").onclick=()=>$("artPick").click();
+$("artPick").onchange=()=>{const f=$("artPick").files[0];if(!f)return;const img=new Image();img.onload=()=>{S.artImg=img;$("artThumb").src=img.src;$("artThumb").hidden=false;$("artClear").hidden=false;$("artLabel").textContent="Change artwork";drawMini();};img.src=URL.createObjectURL(f);$("artPick").value="";};
+$("artClear").onclick=()=>{S.artImg=null;$("artThumb").hidden=true;$("artClear").hidden=true;$("artLabel").textContent="Add your logo or artwork";drawMini();};
+function setNight(n){S.night=n;$("dayBtn").classList.toggle("on",!n);$("nightBtn").classList.toggle("on",n);$("dayBtn").setAttribute("aria-pressed",!n);$("nightBtn").setAttribute("aria-pressed",n);}
 $("dayBtn").onclick=()=>setNight(false);$("nightBtn").onclick=()=>setNight(true);
 
-// small preview in the summary
-let miniT=null;function drawMiniSoon(){clearTimeout(miniT);miniT=setTimeout(drawMini,150);}
-function drawMini(){
-  if(!S.photo||!S.quad)return;
-  try{const m=renderMockup(S.photo,artCanvas(),S.quad,mockOpts(640));const cv=$("mini");cv.width=m.width;cv.height=m.height;cv.getContext("2d").drawImage(m,0,0);}catch(e){}
+/* Picture used in the summary, the PDF and the email to your team.
+   With a photo: the photo with the screen position outlined.  Without: a simple size diagram. */
+function rr(x,c,X,Y,W,H,R){x.beginPath();x.moveTo(X+R,Y);x.arcTo(X+W,Y,X+W,Y+H,R);x.arcTo(X+W,Y+H,X,Y+H,R);x.arcTo(X,Y+H,X,Y,R);x.arcTo(X,Y,X+W,Y,R);x.closePath();}
+function planImage(maxSize){
+  const accent=CFG.settings.accent||"#2563eb",q=Q(),c=document.createElement("canvas"),x=c.getContext("2d");
+  if(hasPhoto()&&S.quad){
+    const pw=S.photo.naturalWidth||S.photo.width,ph=S.photo.naturalHeight||S.photo.height,k=Math.min(1,maxSize/Math.max(pw,ph));
+    c.width=Math.round(pw*k);c.height=Math.round(ph*k);x.drawImage(S.photo,0,0,c.width,c.height);
+    const pts=S.quad.map(([u,v])=>[u*c.width,v*c.height]),lw=Math.max(2,c.width/320);
+    x.beginPath();pts.forEach((p,i)=>i?x.lineTo(...p):x.moveTo(...p));x.closePath();
+    x.globalAlpha=.28;x.fillStyle=accent;x.fill();x.globalAlpha=1;
+    x.lineJoin="round";x.lineWidth=lw*2.4;x.strokeStyle="rgba(255,255,255,.9)";x.stroke();x.lineWidth=lw;x.strokeStyle=accent;x.stroke();
+    const cx=pts.reduce((a,p)=>a+p[0],0)/4,cy=pts.reduce((a,p)=>a+p[1],0)/4,fs=Math.max(12,Math.round(c.width/48));
+    x.font=`800 ${fs}px Inter, system-ui, sans-serif`;const t=sizeLabel(),tw=x.measureText(t).width;
+    x.fillStyle=accent;rr(x,0,cx-tw/2-fs*.7,cy-fs*.95,tw+fs*1.4,fs*1.9,fs*.5);x.fill();
+    x.fillStyle="#fff";x.textAlign="center";x.textBaseline="middle";x.fillText(t,cx,cy+1);
+    return c;
+  }
+  // size diagram: screen next to a 1.75 m person for scale
+  c.width=maxSize;c.height=Math.round(maxSize*9/16);const W=c.width,H=c.height;
+  const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,"#1a2140");g.addColorStop(1,"#0d1222");x.fillStyle=g;x.fillRect(0,0,W,H);
+  const person=1.75,floor=H*.86,availW=W*.62,availH=H*.62,s=Math.min(availW/q.width,availH/Math.max(q.height+.6,person));
+  const sw=q.width*s,sh=q.height*s,sx=W*.14,sy=floor-sh-Math.min(.6*s,H*.08);
+  x.strokeStyle="rgba(255,255,255,.18)";x.lineWidth=2;x.beginPath();x.moveTo(W*.06,floor);x.lineTo(W*.94,floor);x.stroke();
+  if(S.artImg){const a=imageToCanvas(S.artImg,q.aspect);x.drawImage(a,sx,sy,sw,sh);}
+  else{const a=sampleContent("brand",q.aspect,CFG.settings.companyName,accent);x.drawImage(a,sx,sy,sw,sh);}
+  x.strokeStyle="rgba(0,0,0,.35)";x.lineWidth=1;for(let i=1;i<q.cols;i++){x.beginPath();x.moveTo(sx+sw*i/q.cols,sy);x.lineTo(sx+sw*i/q.cols,sy+sh);x.stroke();}
+  for(let j=1;j<q.rows;j++){x.beginPath();x.moveTo(sx,sy+sh*j/q.rows);x.lineTo(sx+sw,sy+sh*j/q.rows);x.stroke();}
+  x.strokeStyle="#111";x.lineWidth=Math.max(3,W/220);x.strokeRect(sx,sy,sw,sh);
+  if(sy+sh<floor-2){x.fillStyle="#3a4260";x.fillRect(sx+sw*.2-3,sy+sh,6,floor-sy-sh);x.fillRect(sx+sw*.8-3,sy+sh,6,floor-sy-sh);}
+  const fs=Math.max(12,Math.round(W/40));x.font=`700 ${fs}px Inter, system-ui, sans-serif`;x.fillStyle="#cfd5e6";x.strokeStyle="#cfd5e6";x.lineWidth=1.5;
+  const dim=(x1,y1,x2,y2)=>{x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();};
+  const ty=sy-fs*.9;dim(sx,ty,sx+sw,ty);dim(sx,ty-5,sx,ty+5);dim(sx+sw,ty-5,sx+sw,ty+5);x.textAlign="center";x.textBaseline="bottom";x.fillText(fmt(q.width)+" m",sx+sw/2,ty-4);
+  const tx=sx+sw+fs*.9;dim(tx,sy,tx,sy+sh);dim(tx-5,sy,tx+5,sy);dim(tx-5,sy+sh,tx+5,sy+sh);x.textAlign="left";x.textBaseline="middle";x.fillText(fmt(q.height)+" m",tx+6,sy+sh/2);
+  // person
+  const ph=person*s,px=Math.min(W*.9,tx+fs*5),hr=ph*.075;x.fillStyle="#7d86a6";
+  x.beginPath();x.arc(px,floor-ph+hr,hr,0,Math.PI*2);x.fill();
+  rr(x,0,px-ph*.11,floor-ph+hr*2.2,ph*.22,ph*.42,ph*.05);x.fill();
+  x.fillRect(px-ph*.09,floor-ph*.45,ph*.07,ph*.45);x.fillRect(px+ph*.02,floor-ph*.45,ph*.07,ph*.45);
+  x.font=`600 ${Math.round(fs*.75)}px Inter, system-ui, sans-serif`;x.textAlign="center";x.textBaseline="top";x.fillText("1.75 m",px,floor+6);
+  return c;
 }
+let miniT=null;function drawMiniSoon(){clearTimeout(miniT);miniT=setTimeout(drawMini,150);}
+function drawMini(){try{const m=planImage(640),cv=$("mini");cv.width=m.width;cv.height=m.height;cv.getContext("2d").drawImage(m,0,0);}catch(e){}}
 
 /* ---------- step 3 ---------- */
 function renderEstimate(){
@@ -528,24 +568,27 @@ $("form").addEventListener("submit",async e=>{
   const btn=$("submitBtn");btn.disabled=true;const label=btn.innerHTML;btn.textContent="Preparing your estimate…";
   try{
     const q=Q();
-    const mock=renderMockup(S.photo,artCanvas(),S.quad,mockOpts(1600));
-    const mockup=mock.toDataURL("image/jpeg",.82);
+    const mock=planImage(1600);
+    const mockup=mock.toDataURL("image/jpeg",.84);
     const wantRender=renderOn()&&$("fRender").checked;
-    if(wantRender&&S.photoIsSample)throw Object.assign(new Error("To make your render we need a real photo of your site. Go back to step 2 and press Upload your photo, or untick the render box."),{soft:1});
+    if(wantRender&&!hasPhoto())throw Object.assign(new Error("To make your image we need a photo of your site. Go back to step 2 and upload one, or untick the box."),{soft:1});
     const customer={name:v("fName"),company:v("fCompany"),email:v("fEmail"),phone:v("fPhone"),postcode:v("fPostcode"),message:v("fMsg")};
-    const photo=wantRender?photoJpeg():"";
-    const payload={customer,mockup,photo,photoIsOwn:!S.photoIsSample,render:wantRender,night:S.night,quote:{productId:q.product.id,productName:q.product.name,environment:q.product.environment,requested:{width:S.width,height:S.height,distance:S.distance},
+    const photo=hasPhoto()?photoJpeg():"";
+    const artwork=S.artImg?jpegOf(S.artImg,1600):"";
+    const placement=$("sNotes").value.trim();
+    const payload={customer,mockup,photo,photoIsOwn:hasPhoto(),artwork,placement,render:wantRender,night:S.night,quote:{productId:q.product.id,productName:q.product.name,environment:q.product.environment,requested:{width:S.width,height:S.height,distance:S.distance},
       width:q.width,height:q.height,area:q.area,panels:q.panels,resolution:`${q.resW} × ${q.resH}`,lines:q.lines.filter(l=>l.kind==="screen"||l.on).map(l=>({name:l.name,amount:l.amount})),subtotal:q.subtotal,vat:q.vat,total:q.total}};
     const r=await fetch("/api/enquiry",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
     const res=await r.json().catch(()=>({}));
     if(!r.ok)throw new Error(res.error||"We couldn't send your details. Please check your internet connection and try again.");
     const d=new Date(res.date||Date.now()),valid=new Date(d.getTime()+(CFG.settings.quoteValidDays||30)*864e5);
     const f=x=>x.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
-    const doc=await buildPdf(CFG,q,{...customer,ref:res.ref,date:f(d),validUntil:f(valid),mockup,mockupW:mock.width,mockupH:mock.height});
+    const doc=await buildPdf(CFG,q,{...customer,ref:res.ref,date:f(d),validUntil:f(valid),mockup,mockupW:mock.width,mockupH:mock.height,
+      caption:hasPhoto()?(wantRender?"Proposed screen position. Your photo-realistic image will follow by email.":"Proposed screen position on your photo."):"Size guide. Person shown at 1.75 m for scale."});
     lastPdf={doc,name:`${(CFG.settings.companyName||'LED').replace(/[^A-Za-z0-9]+/g,'-')}-estimate-${res.ref}.pdf`};doc.save(lastPdf.name);
-    notifyTeam(res,q,customer,wantRender);
+    notifyTeam(res,q,customer,wantRender,placement);
     $("refOut").textContent=res.ref;lastRef=res.ref;
-    $("thanksText").textContent=(CFG.settings.thankYou||"")+(wantRender?` We'll email your photo-realistic render to ${customer.email} ${turnaround()}.`:"");
+    $("thanksText").textContent=(CFG.settings.thankYou||"")+(wantRender?` We'll email your photo-realistic image to ${customer.email} ${turnaround()}.`:"");
     $("estimateBox").hidden=true;$("thanks").hidden=false;
   }catch(ex){err.textContent=ex.message||"Something went wrong. Please try again.";err.hidden=false;if(ex.soft)syncRenderUi();}
   btn.disabled=false;btn.innerHTML=label;
@@ -631,26 +674,32 @@ function openBooking(type){
 }
 function renderOn(){return CFG.settings.renderOffer!==false;}
 function turnaround(){return CFG.settings.renderTurnaround||"within 1 working day";}
-function photoJpeg(){const p=S.photo,W=p.naturalWidth||p.width,H=p.naturalHeight||p.height,k=Math.min(1,1800/Math.max(W,H));
-  const c=document.createElement("canvas");c.width=Math.round(W*k);c.height=Math.round(H*k);c.getContext("2d").drawImage(p,0,0,c.width,c.height);return c.toDataURL("image/jpeg",.86);}
+function jpegOf(p,max){const W=p.naturalWidth||p.width,H=p.naturalHeight||p.height,k=Math.min(1,max/Math.max(W,H));
+  const c=document.createElement("canvas"),x=c.getContext("2d");c.width=Math.round(W*k);c.height=Math.round(H*k);x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(p,0,0,c.width,c.height);return c.toDataURL("image/jpeg",.86);}
+function photoJpeg(){return jpegOf(S.photo,1800);}
 // Sends a copy of the enquiry to Netlify Forms, which emails your team. Never blocks the customer.
-function notifyTeam(res,q,c,wantRender){
+function notifyTeam(res,q,c,wantRender,placement){
   try{
     const abs=u=>u?location.origin+u:"";
     const f=new URLSearchParams({"form-name":"led-enquiry","subject":(wantRender?"RENDER REQUEST: ":"New LED estimate: ")+c.name+(c.company?" ("+c.company+")":"")+" "+res.ref,
       ref:res.ref,render:wantRender?"YES - customer wants a photo-realistic render":"No",name:c.name,company:c.company,email:c.email,phone:c.phone,postcode:c.postcode,message:c.message,
-      screen:q.product.name,size:`${fmt(q.width)} x ${fmt(q.height)} m (${fmt(q.area)} m2)`,estimate:money(q.total,CFG.settings.currency)+" inc VAT",time_of_day:S.night?"Night":"Day",
-      photo_link:abs(res.photo),mockup_link:abs(res.mockup),admin_link:location.origin+"/admin/#"+res.ref});
+      screen:q.product.name,size:`${fmt(q.width)} x ${fmt(q.height)} m (${fmt(q.area)} m2)`,estimate:money(q.total,CFG.settings.currency)+" inc VAT",time_of_day:S.night?"Night":"Day",placement:placement||"",
+      photo_link:abs(res.photo),mockup_link:abs(res.mockup),artwork_link:abs(res.artwork),admin_link:location.origin+"/admin/#"+res.ref});
     fetch("/",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:f.toString()}).catch(()=>{});
   }catch(e){}
 }
+function setRender(v){$("fRender").checked=v;$("fRender2").checked=v;syncRenderUi();}
 function syncRenderUi(){
-  const on=renderOn();$("renderOffer").hidden=!on;$("renderOpt").hidden=!on;
+  const on=renderOn(),ph=hasPhoto();$("renderOffer").hidden=!on;$("renderOpt").hidden=!on;
   document.querySelectorAll(".turn").forEach(e=>e.textContent=turnaround());
-  $("renderWarn").hidden=!(on&&$("fRender").checked&&S.photoIsSample);
+  $("fRender2").checked=$("fRender").checked;
+  $("renderOffer").classList.toggle("off",!ph);$("fRender2").disabled=!ph;
+  if(!ph){$("fRender2").checked=false;}
+  $("offerText").innerHTML=ph?`Our design team will put your new screen into your photo and email it to you, <span class="turn">${esc(turnaround())}</span>.`:`Upload a photo above and our design team will put your new screen into it, free.`;
+  $("renderWarn").hidden=!(on&&$("fRender").checked&&!ph);
 }
 $("fRender").addEventListener("change",()=>{$("fRender").dataset.touched="1";syncRenderUi();});
-$("offerBtn").onclick=()=>{if(S.photoIsSample){$("photoPick").click();return;}$("fRender").checked=true;goStep(3);};
+$("fRender2").addEventListener("change",()=>{$("fRender").dataset.touched="1";$("fRender").checked=$("fRender2").checked;syncRenderUi();});
 function showErr(m,id){const err=$("formErr");err.textContent=m;err.hidden=false;$(id)?.focus();}
 $("againPdf").onclick=()=>lastPdf&&lastPdf.doc.save(lastPdf.name);
 $("newQuote").onclick=()=>{$("thanks").hidden=true;$("estimateBox").hidden=false;$("form").reset();S.extras={};goStep(1);};
