@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>LED Estimator Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --bg:#f3f4f7; --panel:#fff; --ink:#151a2d; --soft:#5b6278; --faint:#9298ab; --line:#e1e4ec;
+  --brand:#0d1222; --accent:#2563eb; --accent-soft:#e8efff;
+  --ok:#14804a; --ok-soft:#e5f5ec; --warn:#9a5b00; --warn-soft:#fff2d6; --bad:#c0332f; --bad-soft:#fde8e7;
+  --font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #9fb6f5;outline-offset:2px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 14px;font-weight:700;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:#c4c9d8}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.save{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.save:disabled{background:#e6e8ef;border-color:#e6e8ef;color:var(--faint);cursor:default}
+.btn.danger{color:var(--bad)}
+.btn.small{padding:6px 10px;font-size:13px;border-radius:8px}
+.btn svg{width:16px;height:16px}
+.iconbtn{width:34px;height:34px;display:inline-grid;place-items:center;border:1px solid var(--line);background:#fff;border-radius:8px;color:var(--soft)}
+.iconbtn:disabled{opacity:.35;cursor:default}
+.iconbtn svg{width:16px;height:16px}
+
+.login{min-height:100%;display:grid;place-items:center;padding:20px;background:var(--brand)}
+.login form{background:#fff;border-radius:18px;padding:34px;width:min(420px,100%)}
+.login h1{margin:0 0 6px;font-size:24px}.login p{margin:0 0 20px;color:var(--soft)}
+.err{color:var(--bad);font-weight:700;margin-top:12px}
+
+.app{min-height:100%;display:grid;grid-template-rows:auto 1fr}
+.top{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--brand);color:#fff;flex-wrap:wrap}
+.top .name{font-weight:800;font-size:17px;margin-right:auto;display:flex;align-items:center;gap:10px}
+.top .name i{width:12px;height:12px;border-radius:3px;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+.top .btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.25)}
+.top .btn.save{background:var(--ok);border-color:var(--ok)}
+.top .btn.save:disabled{background:rgba(255,255,255,.12);border-color:transparent;color:rgba(255,255,255,.5)}
+.chip{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.ok{background:rgba(255,255,255,.12);color:#cfe9da}
+.body{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:0}
+nav{background:#fff;border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:2px}
+nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;font-weight:700;cursor:pointer;color:var(--ink)}
+nav a:hover{background:var(--bg)}
+nav a.on{background:var(--accent-soft);color:var(--accent)}
+nav a svg{width:18px;height:18px;color:var(--soft)}
+nav a.on svg{color:var(--accent)}
+nav a .count{margin-left:auto;background:var(--bad);color:#fff;font-size:11px;border-radius:999px;padding:1px 7px}
+main{padding:26px clamp(16px,3vw,36px) 80px;overflow:auto}
+.wrap{max-width:1200px;margin:0 auto}
+h2.title{font-size:26px;margin:0 0 4px}
+.lead{color:var(--soft);margin:0 0 22px;max-width:75ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+.card h3{margin:0 0 4px;font-size:16px}
+.card .hint{color:var(--soft);font-size:13px;margin:0 0 14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.field label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}
+.field label small{font-weight:500;color:var(--faint)}
+input[type=text],input[type=number],input[type=email],input[type=password],textarea,select{width:100%;border:1px solid #cfd3df;border-radius:10px;padding:9px 11px;background:#fff}
+textarea{min-height:80px;resize:vertical;line-height:1.45}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.pre{position:relative}.pre span{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--faint);font-weight:700}.pre input{padding-left:26px}
+.post{position:relative}.post span{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--faint);font-weight:600;font-size:13px}.post input{padding-right:52px}
+.toggle{display:inline-flex;align-items:center;gap:10px;font-weight:700;cursor:pointer}
+.toggle input{appearance:none;width:40px;height:23px;border-radius:999px;background:#d3d7e2;position:relative;cursor:pointer;flex:none}
+.toggle input::after{content:"";position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .15s}
+.toggle input:checked{background:var(--ok)}.toggle input:checked::after{transform:translateX(17px)}
+
+.pcard{border:1px solid var(--line);border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
+.pcard.off{opacity:.65}
+.phead{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fafbfd;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.phead b{flex:1;font-size:16px;min-width:160px}
+.pbody{padding:16px;display:grid;gap:14px}
+.example{font-size:13px;color:var(--soft);background:var(--bg);border-radius:8px;padding:8px 12px}
+.example b{color:var(--ink)}
+.envtag{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.envtag.outdoor{background:#e6f4ea;color:#1d6b3a}
+
+table.data{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.data th,table.data td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.data th{font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+table.data tr.click{cursor:pointer}table.data tr.click:hover td{background:#fafbfd}
+.status{font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.st-new{background:var(--bad-soft);color:var(--bad)}.st-contacted{background:var(--warn-soft);color:var(--warn)}.st-quoted{background:var(--accent-soft);color:var(--accent)}.st-won{background:var(--ok-soft);color:var(--ok)}.st-lost{background:#eceef3;color:var(--soft)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat b{display:block;font-size:26px;font-variant-numeric:tabular-nums}.stat span{color:var(--soft);font-size:13px;font-weight:600}
+.empty{border:2px dashed var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--soft)}
+.detail{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+.detail img{width:100%;border-radius:10px;display:block;border:1px solid var(--line)}
+dl.kv{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0}
+dl.kv dt{color:var(--soft)}dl.kv dd{margin:0;font-weight:700;word-break:break-word}
+.ln{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.thumb{width:180px;height:70px;border-radius:10px;border:1px solid var(--line);background:#0d1222 center/contain no-repeat;display:grid;place-items:center;color:#9aa3bd;font-size:12px;font-weight:700}
+.swatches{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input[type=color]{width:46px;height:38px;border:1px solid #cfd3df;border-radius:8px;padding:2px;background:#fff;cursor:pointer}
+.preset{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--brand);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.overlay{position:fixed;inset:0;background:rgba(13,18,34,.5);display:grid;place-items:center;z-index:60;padding:16px}
+.modal{background:#fff;border-radius:16px;padding:26px;width:min(460px,100%)}.modal h3{margin:0 0 8px;font-size:20px}.modal p{color:var(--soft);margin:0 0 18px}
+.modal .acts{display:flex;gap:10px;justify-content:flex-end}
+@media (max-width:900px){.grid3,.grid4,.stats{grid-template-columns:1fr 1fr}.detail{grid-template-columns:1fr}}
+@media (max-width:720px){.body{grid-template-columns:1fr}nav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}nav a{white-space:nowrap}.grid2,.grid3,.grid4{grid-template-columns:1fr}.hidemob{display:none}}
+</style>
+</head>
+<body>
+<div class="login" id="login" hidden>
+  <form id="loginForm">
+    <h1>LED Estimator Admin</h1>
+    <p>Log in to change prices and see enquiries.</p>
+    <div class="field"><label for="pw">Password</label><input type="password" id="pw" autocomplete="current-password" required></div>
+    <button class="btn primary" style="width:100%;justify-content:center;padding:12px;margin-top:14px" id="loginBtn">Log in</button>
+    <div class="err" id="loginErr" hidden></div>
+  </form>
+</div>
+
+<div class="app" id="app" hidden>
+  <header class="top">
+    <div class="name"><i></i>LED Estimator Admin</div>
+    <span class="chip warn" id="unsaved" hidden>Unsaved changes</span>
+    <span class="chip ok" id="saved">All changes live</span>
+    <a class="btn" href="/" target="_blank" rel="noopener">Open estimator ↗</a>
+    <button class="btn save" id="saveBtn" disabled>Save changes</button>
+    <button class="btn" id="logoutBtn">Log out</button>
+  </header>
+  <div class="body">
+    <nav id="nav">
+      <a data-v="enquiries"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H8l-4 4z"/></svg>Enquiries<span class="count" id="newCount" hidden></span></a>
+      <a data-v="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="12" rx="1"/><path d="M8 21h8M12 17v4"/></svg>Screens &amp; prices</a>
+      <a data-v="extras"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>Extras</a>
+      <a data-v="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Brand &amp; wording</a>
+      <a data-v="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Past versions</a>
+    </nav>
+    <main><div class="wrap" id="view"></div></main>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div class="overlay" id="modal" hidden><div class="modal"><h3 id="mT"></h3><p id="mX"></p><div class="acts"><button class="btn" id="mNo">Cancel</button><button class="btn primary" id="mYes">OK</button></div></div></div>
+<input type="file" id="filePick" accept="image/*" hidden>
+
+<script src="/assets/led.js"></script>
+<script>
+const {esc,num,money,fmt,calc}=LED;
+const $=id=>document.getElementById(id);
+let token=null,CFG=null,savedJSON="",view="enquiries",ENQ=[],openEnq=null,enqFilter="all";
+const uid=p=>p+Math.random().toString(36).slice(2,7);
+
+/* ---------- api + login ---------- */
+async function api(path,opts={}){
+  const r=await fetch("/api/"+path,{...opts,headers:{...(opts.headers||{}),...(token?{authorization:"Bearer "+token}:{})}});
+  if(r.status===401&&path!=="login"){logout("Your session ended. Please log in again.");throw new Error("401");}
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Something went wrong.");return d;
+}
+$("loginForm").onsubmit=async e=>{e.preventDefault();$("loginErr").hidden=true;
+  try{const r=await api("login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({password:$("pw").value})});token=r.token;try{localStorage.setItem("led_token",token)}catch(e){}await start();}
+  catch(err){$("loginErr").textContent=err.message;$("loginErr").hidden=false;}};
+function logout(msg){token=null;try{localStorage.removeItem("led_token")}catch(e){}$("app").hidden=true;$("login").hidden=false;if(msg){$("loginErr").textContent=msg;$("loginErr").hidden=false;}}
+$("logoutBtn").onclick=()=>logout();
+async function start(){
+  let c=null;try{c=await api("config");}catch(e){if(e.message==="401")return;}
+  if(!c){c=await (await fetch("/default-config.json",{cache:"no-store"})).json();CFG=c;await save(true);}
+  CFG=c;savedJSON=strip(CFG);
+  $("login").hidden=true;$("app").hidden=false;await loadEnquiries();go(view);
+}
+(async()=>{try{token=localStorage.getItem("led_token")}catch(e){}if(token){try{await api("session");await start();return;}catch(e){}}$("login").hidden=false;})();
+
+/* ---------- saving ---------- */
+const strip=c=>{const {savedAt,...r}=c;return JSON.stringify(r);};
+function dirty(){const d=strip(CFG)!==savedJSON;$("saveBtn").disabled=!d;$("unsaved").hidden=!d;$("saved").hidden=d;}
+async function save(silent){
+  try{const r=await api("config",{method:"PUT",headers:{"content-type":"application/json"},body:JSON.stringify(CFG)});CFG.savedAt=r.savedAt;savedJSON=strip(CFG);dirty();if(!silent)toast("Saved. The estimator is using the new prices now.");}
+  catch(e){if(e.message!=="401")toast(e.message);}
+}
+$("saveBtn").onclick=()=>save();
+window.addEventListener("beforeunload",e=>{if(CFG&&strip(CFG)!==savedJSON){e.preventDefault();e.returnValue="";}});
+function toast(m){$("toast").textContent=m;$("toast").hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>$("toast").hidden=true,3500);}
+function ask(t,x,yes="OK"){return new Promise(r=>{$("mT").textContent=t;$("mX").textContent=x;$("mYes").textContent=yes;$("modal").hidden=false;$("mYes").onclick=()=>{$("modal").hidden=true;r(true)};$("mNo").onclick=()=>{$("modal").hidden=true;r(false)};});}
+
+/* ---------- binding ---------- */
+const getAt=p=>p.split(".").reduce((o,k)=>o?.[k],CFG);
+function setAt(p,v){const ks=p.split(".");const last=ks.pop();ks.reduce((o,k)=>o[k],CFG)[last]=v;}
+$("view").addEventListener("input",e=>{const el=e.target;if(!el.dataset.path)return;
+  setAt(el.dataset.path,el.type==="checkbox"?el.checked:el.dataset.num!==undefined?num(el.value):el.value);dirty();
+  const card=el.closest(".pcard");if(card&&card.dataset.i!==undefined)updateExample(+card.dataset.i);
+  if(el.dataset.path.endsWith(".name")){const h=card?.querySelector(".phead b");if(h)h.textContent=el.value||"Untitled";}
+  if(el.dataset.path==="settings.accent")document.documentElement.style.setProperty("--accent",el.value);
+});
+$("view").addEventListener("change",e=>{const el=e.target;if(el.tagName==="SELECT"&&el.dataset.path){setAt(el.dataset.path,el.value);dirty();if(view!=="enquiries")render();}});
+
+/* ---------- nav ---------- */
+$("nav").addEventListener("click",e=>{const a=e.target.closest("a");if(a)go(a.dataset.v);});
+function go(v){view=v;openEnq=v==="enquiries"?openEnq:null;document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===v));render();document.querySelector("main").scrollTop=0;}
+function render(){$("view").innerHTML=VIEWS[view]();}
+
+const F=(path,label,opts={})=>{const v=getAt(path);const t=opts.type||"text";
+  const input=t==="textarea"?`<textarea data-path="${path}">${esc(v)}</textarea>`:`<input type="${t==="money"||t==="numu"?"number":t}" data-path="${path}" ${t==="number"||t==="money"||t==="numu"?"data-num step=\"any\"":""} value="${esc(v)}">`;
+  const wrapped=t==="money"?`<div class="pre"><span>${esc(CFG.settings.currency)}</span>${input}</div>`:t==="numu"?`<div class="post">${input}<span>${opts.unit||""}</span></div>`:input;
+  return `<div class="field"><label>${label}${opts.small?` <small>${opts.small}</small>`:""}</label>${wrapped}</div>`;};
+const TG=(path,label)=>`<label class="toggle"><input type="checkbox" data-path="${path}" ${getAt(path)!==false?"checked":""}>${label}</label>`;
+
+const VIEWS={
+/* ----- enquiries ----- */
+enquiries(){
+  if(openEnq)return enquiryDetail(openEnq);
+  const cur=CFG.settings.currency,count=s=>ENQ.filter(e=>e.status===s).length;
+  const month=new Date().toISOString().slice(0,7),thisMonth=ENQ.filter(e=>e.createdAt.startsWith(month));
+  const list=enqFilter==="all"?ENQ:ENQ.filter(e=>e.status===enqFilter);
+  return `<h2 class="title">Enquiries</h2><p class="lead">Every estimate a customer downloads appears here with their details and their mockup.</p>
+  <div class="stats"><div class="stat"><b>${count("new")}</b><span>New, not contacted</span></div><div class="stat"><b>${thisMonth.length}</b><span>Estimates this month</span></div>
+   <div class="stat"><b>${money(thisMonth.reduce((s,e)=>s+e.quote.total,0),cur)}</b><span>Value estimated this month</span></div><div class="stat"><b>${count("won")}</b><span>Won</span></div></div>
+  <div class="card"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <select id="fStatus" style="width:auto">${["all","new","contacted","quoted","won","lost"].map(s=>`<option value="${s}" ${enqFilter===s?"selected":""}>${s==="all"?"All enquiries":s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select>
+    <span style="margin-left:auto"></span><button class="btn small" id="refreshEnq">Refresh</button><button class="btn small" id="csvBtn" ${ENQ.length?"":"disabled"}>Download as spreadsheet (CSV)</button></div>
+  ${list.length?`<div style="overflow-x:auto"><table class="data"><thead><tr><th>Date</th><th>Customer</th><th class="hidemob">Screen</th><th class="hidemob">Size</th><th>Estimate</th><th>Status</th></tr></thead><tbody>
+   ${list.map(e=>`<tr class="click" data-enq="${esc(e.id)}"><td>${new Date(e.createdAt).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}<br><small style="color:var(--faint)">${esc(e.ref)}</small></td>
+    <td><b>${esc(e.customer.name)}</b>${e.customer.company?`<br><small style="color:var(--soft)">${esc(e.customer.company)}</small>`:""}</td>
+    <td class="hidemob">${esc(e.quote.productName)}</td><td class="hidemob">${fmt(e.quote.width)} × ${fmt(e.quote.height)} m</td>
+    <td><b>${money(e.quote.total,cur)}</b></td><td><span class="status st-${e.status}">${e.status}</span></td></tr>`).join("")}</tbody></table></div>`
+   :`<div class="empty">${ENQ.length?"Nothing with that status.":"No enquiries yet. They appear here as soon as a customer downloads an estimate."}</div>`}</div>`;
+},
+/* ----- products ----- */
+products(){
+  return `<h2 class="title">Screens &amp; prices</h2><p class="lead">The LED products customers can choose. The screen is priced per square metre. Sizes are rounded to whole panels, so set each product's panel size correctly. Press <b>Save changes</b> at the top to make changes live.</p>
+  ${CFG.products.map((p,i)=>`<div class="pcard ${p.visible===false?"off":""}" data-i="${i}">
+   <div class="phead"><b>${esc(p.name||"Untitled")}</b><span class="envtag ${p.environment}">${p.environment}</span>${TG(`products.${i}.visible`,"Show")}
+    <button class="iconbtn" data-act="mv" data-list="products" data-i="${i}" data-d="-1" ${i===0?"disabled":""} title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 15l6-6 6 6"/></svg></button>
+    <button class="iconbtn" data-act="mv" data-list="products" data-i="${i}" data-d="1" ${i===CFG.products.length-1?"disabled":""} title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg></button>
+    <button class="iconbtn" data-act="del" data-list="products" data-i="${i}" data-name="${esc(p.name)}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
+   <div class="pbody">
+    <div class="grid3">${F(`products.${i}.name`,"Name")}<div class="field"><label>Indoor or outdoor</label><select data-path="products.${i}.environment"><option value="indoor" ${p.environment==="indoor"?"selected":""}>Indoor</option><option value="outdoor" ${p.environment==="outdoor"?"selected":""}>Outdoor</option></select></div>
+     ${F(`products.${i}.pricePerM2`,"Price per m²",{type:"money",small:"(screen only, ex VAT)"})}</div>
+    ${F(`products.${i}.description`,"Short description for customers")}
+    <div class="grid4">${F(`products.${i}.pitch`,"Pixel pitch",{type:"numu",unit:"mm"})}${F(`products.${i}.cabinetW`,"Panel width",{type:"numu",unit:"mm"})}${F(`products.${i}.cabinetH`,"Panel height",{type:"numu",unit:"mm"})}${F(`products.${i}.brightness`,"Brightness",{type:"numu",unit:"nits"})}</div>
+    <div class="grid4">${F(`products.${i}.powerAvg`,"Typical power",{type:"numu",unit:"W/m²"})}${F(`products.${i}.powerMax`,"Max power",{type:"numu",unit:"W/m²"})}${F(`products.${i}.weight`,"Weight",{type:"numu",unit:"kg/m²"})}<div></div></div>
+    <div class="example" id="ex${i}"></div>
+   </div></div>`).join("")}
+  <button class="btn primary" data-act="addProduct">＋ Add a screen</button>`;
+},
+/* ----- extras ----- */
+extras(){
+  const rows=CFG.extras.map((x,i)=>`<div class="pcard ${x.visible===false?"off":""}"><div class="phead"><b>${esc(x.name||"Untitled")}</b>${TG(`extras.${i}.visible`,"Use")}
+    <button class="iconbtn" data-act="mv" data-list="extras" data-i="${i}" data-d="-1" ${i===0?"disabled":""} title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 15l6-6 6 6"/></svg></button>
+    <button class="iconbtn" data-act="mv" data-list="extras" data-i="${i}" data-d="1" ${i===CFG.extras.length-1?"disabled":""} title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg></button>
+    <button class="iconbtn" data-act="del" data-list="extras" data-i="${i}" data-name="${esc(x.name)}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
+   <div class="pbody"><div class="grid4">${F(`extras.${i}.name`,"Name")}
+    <div class="field"><label>Charged</label><select data-path="extras.${i}.type"><option value="perM2" ${x.type==="perM2"?"selected":""}>Per m² of screen</option><option value="fixed" ${x.type==="fixed"?"selected":""}>Fixed price</option><option value="percent" ${x.type==="percent"?"selected":""}>% of screen price</option></select></div>
+    ${x.type==="percent"?F(`extras.${i}.amount`,"Percentage",{type:"numu",unit:"%"}):F(`extras.${i}.amount`,x.type==="perM2"?"Price per m²":"Price",{type:"money"})}
+    <div class="field"><label>Applies to</label><select data-path="extras.${i}.appliesTo"><option value="all" ${x.appliesTo==="all"?"selected":""}>All screens</option><option value="indoor" ${x.appliesTo==="indoor"?"selected":""}>Indoor only</option><option value="outdoor" ${x.appliesTo==="outdoor"?"selected":""}>Outdoor only</option></select></div></div>
+    <div class="field" style="max-width:420px"><label>On the estimate</label><select data-path="extras.${i}.mode"><option value="included" ${x.mode==="included"?"selected":""}>Always included</option><option value="optional-on" ${x.mode==="optional-on"?"selected":""}>Optional, ticked to start with</option><option value="optional-off" ${x.mode==="optional-off"?"selected":""}>Optional, unticked to start with</option></select></div>
+   </div></div>`).join("");
+  return `<h2 class="title">Extras</h2><p class="lead">Installation, frames, controllers and anything else added to the screen price. Optional extras appear as tick boxes for the customer.</p>${rows}<button class="btn primary" data-act="addExtra">＋ Add an extra</button>`;
+},
+/* ----- settings ----- */
+settings(){
+  const s=CFG.settings;
+  return `<h2 class="title">Brand &amp; wording</h2><p class="lead">Your logo, colour and the words customers see on the estimator and the PDF.</p>
+  <div class="card"><h3>Brand</h3><p class="hint">Shown at the top of the estimator and on every PDF.</p><div class="grid2">${F("settings.companyName","Company name")}
+   <div class="field"><label>Logo <small>(PNG with transparent background, light colours work best on the dark header)</small></label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div class="thumb" style="${s.logo?`background-image:url('${esc(s.logo)}')`:""}">${s.logo?"":"No logo"}</div><button class="btn small" data-act="upload">${s.logo?"Change logo":"Upload logo"}</button>${s.logo?'<button class="btn small danger" data-act="clearLogo">Remove</button>':""}</div></div></div>
+   <div class="field"><label>Brand colour</label><div class="swatches"><input type="color" data-path="settings.accent" value="${esc(s.accent)}">${["#2563eb","#e11d48","#16a34a","#f59e0b","#7c3aed","#0891b2"].map(c=>`<button class="preset" style="background:${c}" data-act="color" data-val="${c}"></button>`).join("")}</div></div></div>
+  <div class="card"><h3>Contact details</h3><div class="grid3">${F("settings.contactEmail","Email",{type:"email"})}${F("settings.contactPhone","Phone")}${F("settings.website","Website")}</div></div>
+  <div class="card"><h3>Estimator wording</h3>${F("settings.headline","Headline")}<div style="height:12px"></div>${F("settings.intro","Introduction",{type:"textarea"})}<div style="height:12px"></div>${F("settings.thankYou","Message after a customer downloads their estimate",{type:"textarea"})}</div>
+  <div class="card"><h3>Prices &amp; PDF</h3><div class="grid4">${F("settings.currency","Currency symbol")}${F("settings.vatLabel","Tax name")}${F("settings.vatRate","Tax rate",{type:"numu",unit:"%"})}${F("settings.quoteValidDays","Estimate valid for",{type:"numu",unit:"days"})}</div>
+   <div style="height:12px"></div>${F("settings.terms","Small print on the PDF",{type:"textarea"})}</div>
+  <div class="card"><h3>Size limits</h3><p class="hint">The smallest and largest screen a customer can ask for.</p><div class="grid4">${F("settings.minWidth","Min width",{type:"numu",unit:"m"})}${F("settings.maxWidth","Max width",{type:"numu",unit:"m"})}${F("settings.minHeight","Min height",{type:"numu",unit:"m"})}${F("settings.maxHeight","Max height",{type:"numu",unit:"m"})}</div></div>`;
+},
+history(){setTimeout(loadHistory);return `<h2 class="title">Past versions</h2><p class="lead">Every time you save, a copy is kept (the last 20). Restore one if a price change went wrong, then press <b>Save changes</b>.</p><div class="card" id="hist">Loading…</div>`;}
+};
+function updateExample(i){const el=$("ex"+i);if(!el)return;const p=CFG.products[i];try{const q=calc(CFG,{productId:p.id,width:3,height:2,extras:{}});
+  el.innerHTML=`Example: a 3 × 2 m request becomes <b>${fmt(q.width)} × ${fmt(q.height)} m</b> (${q.cols}×${q.rows} panels, ${q.resW}×${q.resH} px). Screen <b>${money(q.lines[0].amount,CFG.settings.currency)}</b>, estimate with included extras <b>${money(q.subtotal,CFG.settings.currency)}</b> + ${CFG.settings.vatLabel}.`;}catch(e){el.textContent="";}}
+const _render=render;render=function(){_render();if(view==="products")CFG.products.forEach((_,i)=>updateExample(i));};
+
+/* ---------- actions ---------- */
+$("view").addEventListener("click",async e=>{
+  const row=e.target.closest("[data-enq]");if(row){openEnq=row.dataset.enq;render();return;}
+  const b=e.target.closest("[data-act]");if(!b||b.disabled)return;const a=b.dataset.act;
+  if(a==="mv"){const arr=getAt(b.dataset.list),i=+b.dataset.i,j=i+ +b.dataset.d;[arr[i],arr[j]]=[arr[j],arr[i]];dirty();render();}
+  if(a==="del"){if(b.dataset.list==="products"&&CFG.products.length===1)return toast("You need at least one screen.");
+    if(await ask("Delete this?",`“${b.dataset.name}” will be removed. Customers won't notice anything until you press Save changes.`,"Delete")){getAt(b.dataset.list).splice(+b.dataset.i,1);dirty();render();}}
+  if(a==="addProduct"){CFG.products.push({id:uid("p"),name:"New screen",environment:"indoor",pitch:3,pricePerM2:1000,cabinetW:500,cabinetH:500,brightness:800,powerMax:600,powerAvg:200,weight:30,description:"",visible:true});dirty();render();setTimeout(()=>document.querySelector(".pcard:last-of-type input")?.select());}
+  if(a==="addExtra"){CFG.extras.push({id:uid("x"),name:"New extra",type:"fixed",amount:0,mode:"optional-off",appliesTo:"all",visible:true});dirty();render();}
+  if(a==="color"){CFG.settings.accent=b.dataset.val;document.documentElement.style.setProperty("--accent",b.dataset.val);dirty();render();}
+  if(a==="upload"){$("filePick").click();}
+  if(a==="clearLogo"){CFG.settings.logo="";dirty();render();}
+  if(a==="restore"){if(!(await ask("Restore this version?","It replaces what's on screen here. Press Save changes afterwards to make it live.","Restore")))return;try{CFG=await api("restore",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:b.dataset.key})});dirty();toast("Restored. Press Save changes to make it live.");go("products");}catch(err){toast(err.message);}}
+  if(a==="backEnq"){openEnq=null;render();}
+  if(a==="saveNote"){const e2=ENQ.find(x=>x.id===openEnq);try{const r=await api("enquiry/"+encodeURIComponent(openEnq),{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({note:$("enqNote").value})});Object.assign(e2,r);toast("Note saved.");}catch(err){toast(err.message);}}
+  if(a==="delEnq"){if(!(await ask("Delete this enquiry?","The customer's details and mockup will be removed for good.","Delete")))return;try{await api("enquiry/"+encodeURIComponent(openEnq),{method:"DELETE"});ENQ=ENQ.filter(x=>x.id!==openEnq);openEnq=null;updateCount();render();toast("Enquiry deleted.");}catch(err){toast(err.message);}}
+  if(b.id==="copyEmail"){try{await navigator.clipboard.writeText(b.dataset.val);toast("Email address copied.");}catch(err){toast(b.dataset.val);}}
+});
+$("view").addEventListener("change",async e=>{
+  if(e.target.id==="fStatus"){enqFilter=e.target.value;render();}
+  if(e.target.id==="enqStatus"){const e2=ENQ.find(x=>x.id===openEnq);try{const r=await api("enquiry/"+encodeURIComponent(openEnq),{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({status:e.target.value})});Object.assign(e2,r);updateCount();toast("Status updated.");}catch(err){toast(err.message);}}
+});
+$("view").addEventListener("click",e=>{if(e.target.id==="refreshEnq")loadEnquiries().then(render);if(e.target.id==="csvBtn")downloadCsv();});
+$("filePick").onchange=async()=>{const f=$("filePick").files[0];if(!f)return;try{const blob=f.type==="image/svg+xml"?f:await shrink(f,600);const r=await api("upload",{method:"POST",headers:{"content-type":blob.type},body:blob});CFG.settings.logo=r.url;dirty();render();toast("Logo uploaded. Press Save changes to use it.");}catch(err){toast(err.message);}$("filePick").value="";};
+function shrink(file,max){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const k=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);c.toBlob(b=>b?res(b):rej(new Error("Couldn't read that image.")),"image/png");};img.onerror=()=>rej(new Error("Couldn't read that image. Try a PNG or JPG."));img.src=URL.createObjectURL(file);});}
+
+/* ---------- enquiries ---------- */
+async function loadEnquiries(){try{ENQ=await api("enquiries");}catch(e){ENQ=[];}updateCount();}
+function updateCount(){const n=ENQ.filter(e=>e.status==="new").length;$("newCount").textContent=n;$("newCount").hidden=!n;}
+function enquiryDetail(id){
+  const e=ENQ.find(x=>x.id===id);if(!e){openEnq=null;return VIEWS.enquiries();}
+  const c=e.customer,q=e.quote,cur=CFG.settings.currency,subject=encodeURIComponent(`Your LED screen estimate ${e.ref}`);
+  return `<p><button class="btn small" data-act="backEnq">← All enquiries</button></p>
+  <h2 class="title">${esc(c.name)}${c.company?` · ${esc(c.company)}`:""}</h2><p class="lead">${esc(e.ref)} · ${new Date(e.createdAt).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</p>
+  <div class="detail"><div>
+   <div class="card">${e.mockup?`<img src="${esc(e.mockup)}" alt="Customer's mockup">`:'<div class="empty">No mockup image</div>'}</div>
+   <div class="card"><h3>Estimate</h3>${q.lines.map(l=>`<div class="ln"><span>${esc(l.name)}</span><b>${money(l.amount,cur)}</b></div>`).join("")}
+    <div class="ln"><span>Subtotal</span><b>${money(q.subtotal,cur)}</b></div><div class="ln"><span>${esc(CFG.settings.vatLabel)}</span><b>${money(q.vat,cur)}</b></div><div class="ln" style="border:0;font-size:18px"><span><b>Total</b></span><b>${money(q.total,cur)}</b></div></div>
+  </div><div>
+   <div class="card"><h3>Status</h3><select id="enqStatus">${["new","contacted","quoted","won","lost"].map(s=>`<option value="${s}" ${e.status===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></div>
+   <div class="card"><h3>Customer</h3><dl class="kv"><dt>Name</dt><dd>${esc(c.name)}</dd>${c.company?`<dt>Company</dt><dd>${esc(c.company)}</dd>`:""}
+     <dt>Email</dt><dd>${esc(c.email)} <button class="btn small" id="copyEmail" data-val="${esc(c.email)}">Copy</button></dd>${c.phone?`<dt>Phone</dt><dd>${esc(c.phone)}</dd>`:""}${c.postcode?`<dt>Site postcode</dt><dd>${esc(c.postcode)}</dd>`:""}</dl>
+     ${c.message?`<p style="background:var(--bg);border-radius:10px;padding:12px;margin:14px 0 0;white-space:pre-wrap">${esc(c.message)}</p>`:""}
+     <p style="margin:14px 0 0"><a class="btn primary small" href="mailto:${esc(c.email)}?subject=${subject}">Email customer</a></p></div>
+   <div class="card"><h3>Screen</h3><dl class="kv"><dt>Product</dt><dd>${esc(q.productName)}</dd><dt>Asked for</dt><dd>${fmt(q.requested.width)} × ${fmt(q.requested.height)} m</dd>
+     <dt>Quoted size</dt><dd>${fmt(q.width)} × ${fmt(q.height)} m (${fmt(q.area)} m²)</dd><dt>Panels</dt><dd>${q.panels}</dd><dt>Resolution</dt><dd>${esc(q.resolution)}</dd><dt>Viewing distance</dt><dd>${q.requested.distance} m</dd></dl></div>
+   <div class="card"><h3>Your notes</h3><textarea id="enqNote" placeholder="Call notes, survey date…">${esc(e.note||"")}</textarea><p style="margin:10px 0 0;display:flex;gap:8px"><button class="btn small primary" data-act="saveNote">Save note</button><button class="btn small danger" data-act="delEnq" style="margin-left:auto">Delete enquiry</button></p></div>
+  </div></div>`;
+}
+function downloadCsv(){
+  const head=["Ref","Date","Status","Name","Company","Email","Phone","Postcode","Product","Width m","Height m","Area m2","Subtotal","VAT","Total","Message","Notes"];
+  const rows=ENQ.map(e=>[e.ref,e.createdAt.slice(0,10),e.status,e.customer.name,e.customer.company,e.customer.email,e.customer.phone,e.customer.postcode,e.quote.productName,e.quote.width,e.quote.height,e.quote.area.toFixed(2),e.quote.subtotal.toFixed(2),e.quote.vat.toFixed(2),e.quote.total.toFixed(2),e.customer.message,e.note]);
+  const csv=[head,...rows].map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`led-enquiries-${new Date().toISOString().slice(0,10)}.csv`;a.click();
+}
+async function loadHistory(){const box=$("hist");if(!box)return;try{const l=await api("history");
+  box.innerHTML=l.length?`<table class="data"><thead><tr><th>Saved</th><th></th></tr></thead><tbody>${l.map((v,i)=>`<tr><td>${new Date(v.at).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}${i===0?' <span class="status st-won">Live now</span>':""}</td><td style="text-align:right"><button class="btn small" data-act="restore" data-key="${esc(v.key)}">Restore</button></td></tr>`).join("")}</tbody></table>`:'<div class="empty">Nothing saved yet.</div>';}catch(e){box.textContent=e.message;}}
+</script>
+</body>
+</html>

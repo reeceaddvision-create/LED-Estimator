@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LED Screen Estimator</title>
+<meta name="description" content="Get an instant LED screen estimate, see it on your own building and download a PDF quote.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: three-step wizard on the left, a sticky live estimate on the right (stacks below on phones). */
+:root{
+  --accent:#2563eb; --accent-ink:#ffffff; --accent-soft:#e8efff;
+  --bg:#f3f4f7; --panel:#ffffff; --ink:#151a2d; --soft:#5b6278; --faint:#9298ab; --line:#e1e4ec;
+  --ok:#14804a; --bad:#c0332f;
+  --font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 50%,white);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:clamp(16px,3vw,32px)}
+
+header.site{background:#0d1222;color:#fff}
+header.site .wrap{display:flex;align-items:center;gap:16px;padding-block:14px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;margin-right:auto}
+.brand img{height:34px;max-width:180px;object-fit:contain}
+.brand .dot{width:12px;height:12px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
+header.site a{color:#cfd5e6;text-decoration:none;font-size:14px;font-weight:600}
+.hero{background:#0d1222;color:#fff;padding-block:22px 64px}
+.hero h1{margin:0;font-size:clamp(28px,4vw,44px);line-height:1.1;letter-spacing:-.01em;max-width:20ch;text-wrap:balance}
+.hero p{margin:12px 0 0;color:#b9c0d4;max-width:60ch;font-size:17px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;margin-top:-40px;padding-bottom:60px;align-items:start}
+.steps{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:16px}
+.steps button{flex:1;border:0;background:none;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;font-weight:700;color:var(--soft);text-align:left;min-width:0}
+.steps button b{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--bg);font-size:13px;flex:none}
+.steps button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.steps button.on{background:var(--accent-soft);color:var(--ink)}
+.steps button.on b{background:var(--accent);color:var(--accent-ink)}
+.steps button.done b{background:var(--ok);color:#fff}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:clamp(18px,3vw,28px);margin-bottom:16px}
+.card h2{margin:0 0 4px;font-size:22px}
+.card h3{margin:0 0 10px;font-size:16px}
+.hint{color:var(--soft);margin:0 0 18px;font-size:15px}
+.section{margin-top:24px}
+.lbl{display:block;font-weight:700;font-size:14px;margin-bottom:8px}
+
+.envs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.env{border:2px solid var(--line);background:#fff;border-radius:14px;padding:16px;text-align:left;display:flex;gap:14px;align-items:center}
+.env svg{width:40px;height:40px;flex:none;color:var(--soft)}
+.env b{display:block;font-size:17px}.env small{color:var(--soft)}
+.env.on{border-color:var(--accent);background:var(--accent-soft)}.env.on svg{color:var(--accent)}
+
+.dims{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end}
+.dims .x{padding-bottom:12px;color:var(--faint);font-weight:700}
+.unit{position:relative}
+.unit input{width:100%;border:1.5px solid #cfd3df;border-radius:12px;padding:12px 44px 12px 14px;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;background:#fff}
+.unit span{position:absolute;right:14px;bottom:14px;color:var(--faint);font-weight:700}
+.unit input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600;color:var(--soft)}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.note{font-size:14px;color:var(--soft);margin-top:10px}
+.note b{color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.rangeval{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.rangeval output{font-weight:800;font-size:18px;font-variant-numeric:tabular-nums}
+
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.prod{border:2px solid var(--line);border-radius:14px;padding:16px;background:#fff;text-align:left;position:relative;display:flex;flex-direction:column;gap:4px}
+.prod.on{border-color:var(--accent);background:var(--accent-soft)}
+.prod b{font-size:17px}
+.prod .pp{font-size:13px;color:var(--soft);font-weight:600}
+.prod .pr{font-weight:800;font-size:18px;margin-top:6px;font-variant-numeric:tabular-nums}
+.prod .pr small{font-weight:600;color:var(--soft);font-size:13px}
+.prod p{margin:4px 0 0;font-size:14px;color:var(--soft)}
+.prod .rec{position:absolute;top:-10px;right:12px;background:var(--ok);color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;padding:3px 8px;border-radius:999px;text-transform:uppercase}
+
+/* mockup */
+.stagebox{background:#0d1222;border-radius:14px;padding:10px;user-select:none;-webkit-user-select:none}
+.stage{position:relative;width:100%;touch-action:none;overflow:hidden;border-radius:8px;background:#222}
+.stage>img,.stage>canvas.bg{display:block;width:100%;height:auto}
+.screen{position:absolute;left:0;top:0;transform-origin:0 0;box-shadow:0 0 0 1.5px rgba(10,10,10,.9);pointer-events:none}
+.screen canvas{display:block;width:100%;height:100%}
+.screen .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.18) 1px,transparent 1px);mix-blend-mode:multiply}
+.screen .glow{position:absolute;inset:0;box-shadow:0 0 40px 6px rgba(255,255,255,.15)}
+.handle{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#fff;border:4px solid var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:grab;touch-action:none}
+.handle::after{content:"";position:absolute;inset:-10px;border-radius:50%}
+.handle:active{cursor:grabbing;transform:scale(1.15)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid #cfd3df;background:#fff;border-radius:11px;padding:10px 16px;font-weight:700}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.big{padding:14px 22px;font-size:17px}
+.btn svg{width:18px;height:18px}
+.btn:disabled{opacity:.55;cursor:default}
+.thumbs{display:flex;gap:10px;flex-wrap:wrap}
+.thumb{width:110px;border:2px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;padding:0;text-align:center;font-size:12px;font-weight:700;color:var(--soft)}
+.thumb canvas,.thumb .up{display:block;width:100%;height:62px;object-fit:cover}
+.thumb .up{display:grid;place-items:center;background:var(--bg);color:var(--soft);font-size:26px}
+.thumb span{display:block;padding:4px}
+.thumb.on{border-color:var(--accent);color:var(--ink)}
+.navrow{display:flex;justify-content:space-between;gap:10px;margin-top:22px;flex-wrap:wrap}
+
+/* estimate */
+.lines{border-top:1px solid var(--line)}
+.ln{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.ln .n{flex:1;min-width:0}
+.ln .n small{display:block;color:var(--faint);font-size:13px}
+.ln .a{font-weight:700;white-space:nowrap}
+.ln.off .a,.ln.off .n{color:var(--faint)}
+.ln input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.ln .tag{font-size:11px;font-weight:800;color:var(--ok);background:#e5f5ec;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.tot{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin-top:14px;font-variant-numeric:tabular-nums}
+.tot .grand{font-size:22px;font-weight:800}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form .full{grid-column:1/-1}
+.form input,.form textarea{width:100%;border:1.5px solid #cfd3df;border-radius:11px;padding:11px 13px;background:#fff}
+.form textarea{min-height:90px;resize:vertical}
+.form input:focus,.form textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.form label{font-weight:700;font-size:14px;display:block;margin-bottom:6px}
+.form .req{color:var(--bad)}
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--soft)}
+.consent input{width:20px;height:20px;margin-top:2px;accent-color:var(--accent);flex:none}
+.err{color:var(--bad);font-weight:700;margin-top:12px}
+.thanks{text-align:center;padding:30px 10px}
+.thanks .tick{width:64px;height:64px;border-radius:50%;background:#e5f5ec;color:var(--ok);display:grid;place-items:center;margin:0 auto 14px}
+.thanks .tick svg{width:34px;height:34px}
+.thanks h2{font-size:26px}
+
+/* summary */
+.summary{position:sticky;top:16px}
+.sum{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.sum .top{padding:18px 20px;border-bottom:1px solid var(--line)}
+.sum .top small{color:var(--soft);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.sum .price{font-size:34px;font-weight:800;line-height:1.1;margin-top:4px;font-variant-numeric:tabular-nums}
+.sum .price small{font-size:14px;color:var(--soft);font-weight:600;letter-spacing:0;text-transform:none}
+.sum .mini{position:relative;margin:14px 20px 0;border-radius:10px;overflow:hidden;background:#0d1222}
+.sum .mini canvas{display:block;width:100%}
+.sum dl{margin:0;padding:12px 20px 18px;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:14px}
+.sum dt{color:var(--soft)}
+.sum dd{margin:0;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.sum .cta{padding:0 20px 20px}
+.sum .cta .btn{width:100%;justify-content:center}
+.small{font-size:13px;color:var(--faint);margin-top:12px;padding:0 4px}
+footer{color:var(--faint);font-size:13px;padding-block:24px 40px;text-align:center}
+
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .summary{position:static;order:2}
+}
+@media (max-width:560px){
+  .envs,.form{grid-template-columns:1fr}
+  .steps button span{display:none}
+  .steps button{justify-content:center}
+  .dims{grid-template-columns:1fr 1fr}.dims .x{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="site"><div class="wrap">
+  <div class="brand" id="brand"><span class="dot"></span><span id="brandName"></span></div>
+  <a id="contactLink" href="#"></a>
+</div></header>
+<section class="hero"><div class="wrap"><h1 id="headline"></h1><p id="intro"></p></div></section>
+
+<div class="wrap layout">
+<main>
+  <nav class="steps" aria-label="Steps">
+    <button data-step="1" class="on"><b>1</b><span>Size &amp; type</span></button>
+    <button data-step="2"><b>2</b><span>See it on your site</span></button>
+    <button data-step="3"><b>3</b><span>Your estimate</span></button>
+  </nav>
+
+  <!-- STEP 1 -->
+  <section class="card" id="step1">
+    <h2>What kind of screen do you need?</h2>
+    <p class="hint">Rough sizes are fine. We'll fine-tune everything with you later.</p>
+    <span class="lbl">Where will it go?</span>
+    <div class="envs">
+      <button class="env" data-env="indoor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><rect x="7" y="10" width="10" height="6" rx="1"/></svg><span><b>Indoor</b><small>Receptions, shops, venues</small></span></button>
+      <button class="env" data-env="outdoor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="18" cy="5" r="2.5"/><rect x="3" y="7" width="12" height="8" rx="1"/><path d="M9 15v6M5 21h8"/></svg><span><b>Outdoor</b><small>Shop fronts, billboards</small></span></button>
+    </div>
+    <div class="section">
+      <span class="lbl">Roughly how big?</span>
+      <div class="dims">
+        <div><label class="lbl" for="w" style="font-weight:600;color:var(--soft)">Width</label><div class="unit"><input id="w" type="number" inputmode="decimal" step="0.1" min="0.5"><span>m</span></div></div>
+        <div class="x">×</div>
+        <div><label class="lbl" for="h" style="font-weight:600;color:var(--soft)">Height</label><div class="unit"><input id="h" type="number" inputmode="decimal" step="0.1" min="0.5"><span>m</span></div></div>
+      </div>
+      <div class="chips" id="presets"></div>
+      <p class="note" id="sizeNote"></p>
+    </div>
+    <div class="section">
+      <div class="rangeval"><label class="lbl" for="dist" style="margin:0">How far away will most people watch from?</label><output id="distOut"></output></div>
+      <input type="range" id="dist" min="1" max="60" step="1">
+      <p class="note">This decides how sharp the screen needs to be (its pixel pitch). Closer viewers need smaller pixels.</p>
+    </div>
+    <div class="section">
+      <span class="lbl">Choose a screen</span>
+      <div class="products" id="products"></div>
+    </div>
+    <div class="navrow"><span></span><button class="btn primary big" data-go="2">Next: see it on your site →</button></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card" id="step2" hidden>
+    <h2>See it on your site</h2>
+    <p class="hint">Upload a photo of the wall or shop front, then drag the four blue dots to where the corners of the screen should be.</p>
+    <div class="stagebox"><div class="stage" id="stage"><div class="screen" id="screen"><canvas id="screenCanvas"></canvas><div class="grid" id="grid"></div><div class="glow"></div></div></div></div>
+    <div class="toolbar">
+      <label class="btn primary" for="photoPick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>Upload your photo</label>
+      <input type="file" id="photoPick" accept="image/*" hidden>
+      <button class="btn" id="samplePhoto">Use example photo</button>
+      <button class="btn" id="resetQuad">Reset screen position</button>
+    </div>
+    <div class="section"><span class="lbl">What's on the screen?</span><div class="thumbs" id="thumbs"></div><input type="file" id="artPick" accept="image/*" hidden></div>
+    <div class="section" style="max-width:420px"><div class="rangeval"><label class="lbl" for="bright" style="margin:0">Screen brightness</label><output id="brightOut"></output></div><input type="range" id="bright" min="60" max="140" value="105"></div>
+    <p class="note">Your photo stays on your device. It's only sent to us inside your estimate if you request one.</p>
+    <div class="navrow"><button class="btn" data-go="1">← Back</button><button class="btn primary big" data-go="3">Next: your estimate →</button></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card" id="step3" hidden>
+    <div id="estimateBox">
+      <h2>Your estimate</h2>
+      <p class="hint">Tick any extras you'd like. Then enter your details to download your PDF estimate.</p>
+      <div class="lines" id="lines"></div>
+      <div class="tot" id="totals"></div>
+      <form class="form section" id="form" novalidate>
+        <div><label for="fName">Your name <span class="req">*</span></label><input id="fName" autocomplete="name" required></div>
+        <div><label for="fCompany">Company</label><input id="fCompany" autocomplete="organization"></div>
+        <div><label for="fEmail">Email <span class="req">*</span></label><input id="fEmail" type="email" autocomplete="email" required></div>
+        <div><label for="fPhone">Phone</label><input id="fPhone" type="tel" autocomplete="tel"></div>
+        <div><label for="fPostcode">Site postcode</label><input id="fPostcode" autocomplete="postal-code"></div>
+        <div></div>
+        <div class="full"><label for="fMsg">Anything else we should know?</label><textarea id="fMsg" placeholder="Deadline, budget, access, what you'll show on it…"></textarea></div>
+        <label class="consent full"><input type="checkbox" id="fConsent"><span>I'm happy for <b id="consentName"></b> to contact me about this estimate.</span></label>
+        <div class="full"><button class="btn primary big" id="submitBtn" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download my PDF estimate</button>
+          <div class="err" id="formErr" hidden></div></div>
+      </form>
+      <div class="navrow"><button class="btn" data-go="2">← Back</button></div>
+    </div>
+    <div class="thanks" id="thanks" hidden>
+      <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12l5 5 9-10"/></svg></div>
+      <h2>Your estimate is on its way</h2>
+      <p class="hint" id="thanksText"></p>
+      <p><b>Reference: <span id="refOut"></span></b></p>
+      <div class="toolbar" style="justify-content:center"><button class="btn primary" id="againPdf">Download PDF again</button><button class="btn" id="newQuote">Start a new estimate</button></div>
+    </div>
+  </section>
+</main>
+
+<aside class="summary">
+  <div class="sum">
+    <div class="top"><small>Estimated total</small><div class="price" id="sumPrice"></div><div class="note" id="sumVat" style="margin:4px 0 0"></div></div>
+    <div class="mini" id="miniWrap"><canvas id="mini" width="640" height="360"></canvas></div>
+    <dl id="sumList"></dl>
+    <div class="cta"><button class="btn primary" id="sumNext"></button></div>
+  </div>
+  <p class="small">Estimates are a guide only. Final prices are confirmed after a free site survey.</p>
+</aside>
+</div>
+<footer><div class="wrap" id="footer"></div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/assets/led.js"></script>
+<script>
+const {esc,num,money,fmt,calc,recommend,matrix3d,homography,renderMockup,sampleContent,imageToCanvas,sampleSite,buildPdf}=LED;
+const $=id=>document.getElementById(id);
+let CFG=null, step=1;
+const S={env:"indoor",width:3,height:1.7,distance:4,productId:null,extras:{},quad:null,photo:null,photoIsSample:true,art:"brand",artImg:null,brightness:1.05};
+let lastPdf=null;
+
+/* ---------- start ---------- */
+(async function(){
+  try{const r=await fetch("/api/config",{cache:"no-store"});if(!r.ok)throw 0;CFG=await r.json();}
+  catch(e){CFG=await (await fetch("/default-config.json",{cache:"no-store"})).json();}
+  const s=CFG.settings;
+  document.documentElement.style.setProperty("--accent",s.accent||"#2563eb");
+  document.documentElement.style.setProperty("--accent-soft",`color-mix(in srgb, ${s.accent||"#2563eb"} 12%, white)`);
+  $("brandName").textContent=s.companyName||"";
+  if(s.logo){$("brand").innerHTML=`<img src="${esc(s.logo)}" alt="${esc(s.companyName||"")}">`;}
+  $("headline").textContent=s.headline||"";$("intro").textContent=s.intro||"";
+  if(s.contactPhone){$("contactLink").textContent=s.contactPhone;$("contactLink").href="tel:"+s.contactPhone.replace(/\s/g,"");}
+  else if(s.contactEmail){$("contactLink").textContent=s.contactEmail;$("contactLink").href="mailto:"+s.contactEmail;}
+  $("consentName").textContent=s.companyName||"you";
+  $("footer").textContent=[s.companyName,s.contactEmail,s.contactPhone,s.website].filter(Boolean).join("  ·  ");
+  $("w").min=s.minWidth;$("w").max=s.maxWidth;$("h").min=s.minHeight;$("h").max=s.maxHeight;
+  if(!CFG.products.some(p=>p.visible!==false&&p.environment==="indoor"))S.env="outdoor";
+  $("w").value=S.width;$("h").value=S.height;$("dist").value=S.distance;
+  S.productId=recommend(CFG,S.env,S.distance);
+  setPhoto(sampleSite(S.env),true);
+  renderStep1();renderThumbs();refresh();
+})();
+
+/* ---------- step 1 ---------- */
+const PRESETS={indoor:[["Meeting room",2,1.1],["Reception wall",3,1.7],["Shop window",1.5,2],["Stage backdrop",6,3.4]],outdoor:[["Shop front",3,1],["Totem",1,2.5],["Car park sign",4,2],["Roadside billboard",6,3]]};
+function visibleProducts(){return CFG.products.filter(p=>p.visible!==false&&p.environment===S.env).sort((a,b)=>a.pitch-b.pitch);}
+function renderStep1(){
+  document.querySelectorAll(".env").forEach(b=>{b.classList.toggle("on",b.dataset.env===S.env);b.hidden=!CFG.products.some(p=>p.visible!==false&&p.environment===b.dataset.env);});
+  $("presets").innerHTML=PRESETS[S.env].map(([n,w,h])=>`<button class="chip" data-w="${w}" data-h="${h}">${n} · ${w}×${h} m</button>`).join("");
+  const rec=recommend(CFG,S.env,S.distance);
+  $("products").innerHTML=visibleProducts().map(p=>`<button class="prod ${p.id===S.productId?"on":""}" data-p="${esc(p.id)}">${p.id===rec?'<span class="rec">Recommended</span>':""}<b>${esc(p.name)}</b><span class="pp">${p.pitch} mm pixel pitch · best from ${fmt(p.pitch,1)} m</span><p>${esc(p.description||"")}</p><span class="pr">${money(p.pricePerM2,CFG.settings.currency)}<small> /m² for the screen</small></span></button>`).join("");
+  $("distOut").textContent=S.distance+" m";
+}
+document.addEventListener("click",e=>{
+  const env=e.target.closest(".env");if(env){S.env=env.dataset.env;S.productId=recommend(CFG,S.env,S.distance);S.extras={};if(S.photoIsSample)setPhoto(sampleSite(S.env),true);renderStep1();refresh();return;}
+  const ch=e.target.closest(".chip");if(ch){S.width=+ch.dataset.w;S.height=+ch.dataset.h;$("w").value=S.width;$("h").value=S.height;resetQuad();refresh();return;}
+  const pr=e.target.closest(".prod");if(pr){S.productId=pr.dataset.p;renderStep1();refresh();return;}
+  const go=e.target.closest("[data-go]");if(go){goStep(+go.dataset.go);return;}
+  const st=e.target.closest(".steps button");if(st){goStep(+st.dataset.step);return;}
+});
+function clampDim(v,min,max){return Math.min(max,Math.max(min,v));}
+["w","h"].forEach(id=>{
+  $(id).addEventListener("input",()=>{const v=num($(id).value,NaN);if(!isFinite(v)||v<=0)return;S[id==="w"?"width":"height"]=v;resetQuad();refresh();});
+  $(id).addEventListener("change",()=>{const s=CFG.settings;S.width=clampDim(num($("w").value,S.width),s.minWidth,s.maxWidth);S.height=clampDim(num($("h").value,S.height),s.minHeight,s.maxHeight);$("w").value=S.width;$("h").value=S.height;resetQuad();refresh();});
+});
+$("dist").addEventListener("input",()=>{S.distance=+$("dist").value;const r=recommend(CFG,S.env,S.distance);S.productId=r;renderStep1();refresh();});
+
+/* ---------- navigation ---------- */
+function goStep(n){
+  step=n;[1,2,3].forEach(i=>$("step"+i).hidden=i!==n);
+  document.querySelectorAll(".steps button").forEach(b=>{const i=+b.dataset.step;b.classList.toggle("on",i===n);b.classList.toggle("done",i<n);});
+  if(n===2)layoutStage();
+  if(n===3)renderEstimate();
+  refresh();window.scrollTo({top:document.querySelector(".layout").offsetTop-60,behavior:"smooth"});
+}
+
+/* ---------- summary ---------- */
+function Q(){return calc(CFG,{productId:S.productId,width:S.width,height:S.height,extras:S.extras});}
+function refresh(){
+  const q=Q(),cur=CFG.settings.currency;
+  $("sumPrice").innerHTML=`${money(q.total,cur)}`;
+  $("sumVat").textContent=`${money(q.subtotal,cur)} + ${CFG.settings.vatLabel||"VAT"} at ${CFG.settings.vatRate}%`;
+  $("sumList").innerHTML=[["Screen",q.product.name],["Actual size",`${fmt(q.width)} × ${fmt(q.height)} m`],["Area",`${fmt(q.area)} m²`],["Panels",`${q.cols} × ${q.rows}`],["Resolution",`${q.resW} × ${q.resH}`],["Typical power",`${fmt(q.powerAvg/1000,1)} kW`]].map(([a,b])=>`<dt>${a}</dt><dd>${esc(b)}</dd>`).join("");
+  const changed=Math.abs(q.width-S.width)>0.005||Math.abs(q.height-S.height)>0.005;
+  $("sizeNote").innerHTML=changed?`Screens are built from ${q.product.cabinetW}×${q.product.cabinetH} mm panels, so the nearest size is <b>${fmt(q.width)} × ${fmt(q.height)} m</b> (${q.cols} × ${q.rows} panels).`:`That's exactly ${q.cols} × ${q.rows} panels.`;
+  $("sumNext").textContent=step===1?"Next: see it on your site →":step===2?"Next: your estimate →":"Download my PDF estimate";
+  $("sumNext").onclick=()=>step<3?goStep(step+1):$("form").requestSubmit();
+  if(step===3)renderEstimate();
+  drawMini();updateScreen();
+}
+
+/* ---------- mockup ---------- */
+const stage=$("stage");let photoEl=null;
+function setPhoto(src,isSample){
+  S.photoIsSample=isSample;
+  if(photoEl)photoEl.remove();
+  if(src instanceof HTMLCanvasElement){photoEl=src;src.className="bg";S.photo=src;}
+  else{photoEl=src;S.photo=src;}
+  stage.prepend(photoEl);S.quad=null;resetQuad();
+}
+function defaultQuad(){
+  const q=Q(),pw=S.photo.naturalWidth||S.photo.width,ph=S.photo.naturalHeight||S.photo.height,photoAspect=pw/ph;
+  let w=.56,h=w*photoAspect/q.aspect;if(h>.56){h=.56;w=h*q.aspect/photoAspect;}
+  const cx=.5,cy=S.env==="indoor"?.38:.36;
+  return [[cx-w/2,cy-h/2],[cx+w/2,cy-h/2],[cx+w/2,cy+h/2],[cx-w/2,cy+h/2]];
+}
+function resetQuad(){if(!S.photo)return;S.quad=defaultQuad();layoutStage();}
+$("resetQuad").onclick=resetQuad;
+$("samplePhoto").onclick=()=>setPhoto(sampleSite(S.env),true);
+$("photoPick").onchange=()=>{const f=$("photoPick").files[0];if(!f)return;const img=new Image();img.onload=()=>{setPhoto(img,false);drawMini();};img.onerror=()=>alertMsg("That photo couldn't be opened. Try a JPG or PNG.");img.src=URL.createObjectURL(f);$("photoPick").value="";};
+function alertMsg(m){$("formErr").textContent=m;}
+
+let handles=[];
+function layoutStage(){
+  if(!S.photo||!S.quad)return;
+  if(!handles.length){for(let i=0;i<4;i++){const h=document.createElement("div");h.className="handle";h.tabIndex=0;h.setAttribute("role","slider");h.setAttribute("aria-label",["Top left","Top right","Bottom right","Bottom left"][i]+" corner");stage.appendChild(h);handles.push(h);dragify(h,i);}}
+  updateScreen();
+}
+function art(){
+  const q=Q();
+  if(S.art==="upload"&&S.artImg)return imageToCanvas(S.artImg,q.aspect);
+  return sampleContent(S.art,q.aspect,CFG.settings.companyName,CFG.settings.accent);
+}
+let artCache={key:"",c:null};
+function artCanvas(){const q=Q();const key=S.art+"|"+q.aspect.toFixed(3)+"|"+(S.artImg?S.artImg.src:"");if(artCache.key!==key){artCache={key,c:art()};}return artCache.c;}
+function updateScreen(){
+  if(!S.photo||!S.quad||!stage.clientWidth)return;
+  const W=stage.clientWidth,H=stage.clientHeight,c=artCanvas(),sc=$("screenCanvas");
+  if(sc.width!==c.width||sc.height!==c.height){sc.width=c.width;sc.height=c.height;}
+  sc.getContext("2d").drawImage(c,0,0);
+  const el=$("screen");el.style.width=c.width+"px";el.style.height=c.height+"px";
+  const pts=S.quad.map(([x,y])=>[x*W,y*H]);
+  el.style.transform=matrix3d(homography(c.width,c.height,pts));
+  el.style.filter=`brightness(${S.brightness})`;
+  const q=Q();$("grid").style.backgroundSize=`${c.width/q.cols}px ${c.height/q.rows}px`;
+  handles.forEach((h,i)=>{h.style.left=pts[i][0]+"px";h.style.top=pts[i][1]+"px";});
+}
+function dragify(h,i){
+  h.addEventListener("pointerdown",e=>{e.preventDefault();h.setPointerCapture(e.pointerId);
+    const move=ev=>{const r=stage.getBoundingClientRect();S.quad[i]=[Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))];updateScreen();};
+    const up=()=>{h.removeEventListener("pointermove",move);h.removeEventListener("pointerup",up);drawMini();};
+    h.addEventListener("pointermove",move);h.addEventListener("pointerup",up);});
+  h.addEventListener("keydown",e=>{const d={ArrowLeft:[-.005,0],ArrowRight:[.005,0],ArrowUp:[0,-.005],ArrowDown:[0,.005]}[e.key];if(!d)return;e.preventDefault();S.quad[i]=[S.quad[i][0]+d[0],S.quad[i][1]+d[1]];updateScreen();drawMini();});
+}
+new ResizeObserver(()=>updateScreen()).observe(stage);
+
+// content thumbnails
+function renderThumbs(){
+  const items=[["brand","Your brand"],["sale","Sale"],["menu","Menu board"]];
+  $("thumbs").innerHTML=items.map(([k,n])=>`<button class="thumb ${S.art===k?"on":""}" data-art="${k}"><canvas width="220" height="124"></canvas><span>${n}</span></button>`).join("")+
+    `<button class="thumb ${S.art==="upload"?"on":""}" data-art="upload">${S.artImg?`<img class="up" src="${esc(S.artImg.src)}" alt="">`:'<span class="up">＋</span>'}<span>${S.artImg?"Your image":"Upload image"}</span></button>`;
+  $("thumbs").querySelectorAll("canvas").forEach((cv,i)=>{const c=sampleContent(items[i][0],16/9,CFG.settings.companyName,CFG.settings.accent);cv.getContext("2d").drawImage(c,0,0,cv.width,cv.height);});
+}
+$("thumbs").addEventListener("click",e=>{const t=e.target.closest("[data-art]");if(!t)return;
+  if(t.dataset.art==="upload"&&!S.artImg){$("artPick").click();return;}
+  if(t.dataset.art==="upload"&&S.artImg&&S.art==="upload"){$("artPick").click();return;}
+  S.art=t.dataset.art;renderThumbs();updateScreen();drawMini();});
+$("artPick").onchange=()=>{const f=$("artPick").files[0];if(!f)return;const img=new Image();img.onload=()=>{S.artImg=img;S.art="upload";renderThumbs();updateScreen();drawMini();};img.src=URL.createObjectURL(f);$("artPick").value="";};
+$("bright").oninput=()=>{S.brightness=$("bright").value/100;$("brightOut").textContent=$("bright").value+"%";updateScreen();drawMiniSoon();};
+$("brightOut").textContent=$("bright").value+"%";
+
+// small preview in the summary
+let miniT=null;function drawMiniSoon(){clearTimeout(miniT);miniT=setTimeout(drawMini,150);}
+function drawMini(){
+  if(!S.photo||!S.quad)return;
+  try{const m=renderMockup(S.photo,artCanvas(),S.quad,{maxSize:640,brightness:S.brightness});const cv=$("mini");cv.width=m.width;cv.height=m.height;cv.getContext("2d").drawImage(m,0,0);}catch(e){}
+}
+
+/* ---------- step 3 ---------- */
+function renderEstimate(){
+  const q=Q(),cur=CFG.settings.currency;
+  $("lines").innerHTML=q.lines.map(l=>{
+    const desc=l.kind==="screen"?`${q.cols}×${q.rows} panels, ${q.resW}×${q.resH} pixels`:l.type==="perM2"?`${money(l.rate,cur)} per m²`:l.type==="percent"?`${l.rate}% of screen price`:"";
+    return `<div class="ln ${l.kind!=="screen"&&!l.on?"off":""}">${l.optional?`<input type="checkbox" data-x="${esc(l.id)}" ${l.on?"checked":""} aria-label="Include ${esc(l.name)}">`:""}
+      <div class="n">${esc(l.name)}${desc?`<small>${esc(desc)}</small>`:""}</div>${!l.optional?'<span class="tag">Included</span>':""}<div class="a">${money(l.amount,cur)}</div></div>`;}).join("");
+  $("totals").innerHTML=`<span>Subtotal</span><b>${money(q.subtotal,cur)}</b><span>${esc(CFG.settings.vatLabel||"VAT")} (${CFG.settings.vatRate}%)</span><b>${money(q.vat,cur)}</b><span class="grand">Estimated total</span><span class="grand">${money(q.total,cur)}</span>`;
+}
+$("lines").addEventListener("change",e=>{const x=e.target.dataset.x;if(!x)return;S.extras[x]=e.target.checked;refresh();});
+
+$("form").addEventListener("submit",async e=>{
+  e.preventDefault();const err=$("formErr");err.hidden=true;
+  const v=id=>$(id).value.trim();
+  if(!v("fName")){return showErr("Please enter your name.","fName");}
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("fEmail"))){return showErr("Please enter a valid email address.","fEmail");}
+  if(!$("fConsent").checked){return showErr("Please tick the box so we can contact you about your estimate.","fConsent");}
+  const btn=$("submitBtn");btn.disabled=true;const label=btn.innerHTML;btn.textContent="Preparing your estimate…";
+  try{
+    const q=Q();
+    const mock=renderMockup(S.photo,artCanvas(),S.quad,{maxSize:1400,brightness:S.brightness});
+    const mockup=mock.toDataURL("image/jpeg",.82);
+    const customer={name:v("fName"),company:v("fCompany"),email:v("fEmail"),phone:v("fPhone"),postcode:v("fPostcode"),message:v("fMsg")};
+    const payload={customer,mockup,quote:{productId:q.product.id,productName:q.product.name,environment:q.product.environment,requested:{width:S.width,height:S.height,distance:S.distance},
+      width:q.width,height:q.height,area:q.area,panels:q.panels,resolution:`${q.resW} × ${q.resH}`,lines:q.lines.filter(l=>l.kind==="screen"||l.on).map(l=>({name:l.name,amount:l.amount})),subtotal:q.subtotal,vat:q.vat,total:q.total}};
+    const r=await fetch("/api/enquiry",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+    const res=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(res.error||"We couldn't send your details. Please check your internet connection and try again.");
+    const d=new Date(res.date||Date.now()),valid=new Date(d.getTime()+(CFG.settings.quoteValidDays||30)*864e5);
+    const f=x=>x.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+    const doc=await buildPdf(CFG,q,{...customer,ref:res.ref,date:f(d),validUntil:f(valid),mockup,mockupW:mock.width,mockupH:mock.height});
+    lastPdf={doc,name:`${(CFG.settings.companyName||'LED').replace(/[^A-Za-z0-9]+/g,'-')}-estimate-${res.ref}.pdf`};doc.save(lastPdf.name);
+    $("refOut").textContent=res.ref;$("thanksText").textContent=CFG.settings.thankYou||"";
+    $("estimateBox").hidden=true;$("thanks").hidden=false;
+  }catch(ex){err.textContent=ex.message||"Something went wrong. Please try again.";err.hidden=false;}
+  btn.disabled=false;btn.innerHTML=label;
+});
+function showErr(m,id){const err=$("formErr");err.textContent=m;err.hidden=false;$(id)?.focus();}
+$("againPdf").onclick=()=>lastPdf&&lastPdf.doc.save(lastPdf.name);
+$("newQuote").onclick=()=>{$("thanks").hidden=true;$("estimateBox").hidden=false;$("form").reset();S.extras={};goStep(1);};
+</script>
+</body>
+</html>
