@@ -93,6 +93,7 @@ table.data th,table.data td{text-align:left;padding:11px 10px;border-bottom:1px 
 table.data th{font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
 table.data tr.click{cursor:pointer}table.data tr.click:hover td{background:#fafbfd}
 .status{font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.st-render{background:#f1e8ff;color:#6b2bd6}
 .st-new{background:var(--bad-soft);color:var(--bad)}.st-contacted{background:var(--warn-soft);color:var(--warn)}.st-quoted{background:var(--accent-soft);color:var(--accent)}.st-won{background:var(--ok-soft);color:var(--ok)}.st-lost{background:#eceef3;color:var(--soft)}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
@@ -139,6 +140,7 @@ input[type=color]{width:46px;height:38px;border:1px solid #cfd3df;border-radius:
     <nav id="nav">
       <a data-v="enquiries"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H8l-4 4z"/></svg>Enquiries<span class="count" id="newCount" hidden></span></a>
       <a data-v="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="12" rx="1"/><path d="M8 21h8M12 17v4"/></svg>Screens &amp; prices</a>
+      <a data-v="meetings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Demos &amp; meetings<span class="count" id="bookCount" hidden></span></a>
       <a data-v="extras"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>Extras</a>
       <a data-v="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Brand &amp; wording</a>
       <a data-v="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Past versions</a>
@@ -171,9 +173,16 @@ $("logoutBtn").onclick=()=>logout();
 async function start(){
   let c=null;try{c=await api("config");}catch(e){if(e.message==="401")return;}
   if(!c){c=await (await fetch("/default-config.json",{cache:"no-store"})).json();CFG=c;await save(true);}
-  CFG=c;savedJSON=strip(CFG);
-  $("login").hidden=true;$("app").hidden=false;await loadEnquiries();go(view);
+  CFG=c;
+  const def=await (await fetch("/default-config.json",{cache:"no-store"})).json().catch(()=>({}));
+  CFG.engage=Object.assign({},def.engage||{},CFG.engage||{});
+  for(const k of ["renderOffer","renderTurnaround"])if(!(k in CFG.settings)&&def.settings&&k in def.settings)CFG.settings[k]=def.settings[k];
+  savedJSON=strip(CFG);
+  $("login").hidden=true;$("app").hidden=false;await loadEnquiries();
+  const h=decodeURIComponent(location.hash.slice(1));if(h&&ENQ.some(x=>x.id===h)){openEnq=h;view="enquiries";}if(h==="bookings")view="meetings";
+  go(view);
 }
+window.addEventListener("hashchange",async()=>{const h=decodeURIComponent(location.hash.slice(1));if(!h||!token)return;if(!ENQ.some(x=>x.id===h))await loadEnquiries();if(ENQ.some(x=>x.id===h)){openEnq=h;go("enquiries");}});
 (async()=>{try{token=localStorage.getItem("led_token")}catch(e){}if(token){try{await api("session");await start();return;}catch(e){}}$("login").hidden=false;})();
 
 /* ---------- saving ---------- */
@@ -227,7 +236,7 @@ enquiries(){
    ${list.map(e=>`<tr class="click" data-enq="${esc(e.id)}"><td>${new Date(e.createdAt).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}<br><small style="color:var(--faint)">${esc(e.ref)}</small></td>
     <td><b>${esc(e.customer.name)}</b>${e.customer.company?`<br><small style="color:var(--soft)">${esc(e.customer.company)}</small>`:""}</td>
     <td class="hidemob">${esc(e.quote.productName)}</td><td class="hidemob">${fmt(e.quote.width)} × ${fmt(e.quote.height)} m</td>
-    <td><b>${money(e.quote.total,cur)}</b></td><td><span class="status st-${e.status}">${e.status}</span></td></tr>`).join("")}</tbody></table></div>`
+    <td><b>${money(e.quote.total,cur)}</b></td><td><span class="status st-${e.status}">${e.status}</span>${e.render==="requested"||e.render==="in-progress"?' <span class="status st-render">render</span>':""}</td></tr>`).join("")}</tbody></table></div>`
    :`<div class="empty">${ENQ.length?"Nothing with that status.":"No enquiries yet. They appear here as soon as a customer downloads an estimate."}</div>`}</div>`;
 },
 /* ----- products ----- */
@@ -271,9 +280,38 @@ settings(){
    <div class="field"><label>Brand colour</label><div class="swatches"><input type="color" data-path="settings.accent" value="${esc(s.accent)}">${["#2563eb","#e11d48","#16a34a","#f59e0b","#7c3aed","#0891b2"].map(c=>`<button class="preset" style="background:${c}" data-act="color" data-val="${c}"></button>`).join("")}</div></div></div>
   <div class="card"><h3>Contact details</h3><div class="grid3">${F("settings.contactEmail","Email",{type:"email"})}${F("settings.contactPhone","Phone")}${F("settings.website","Website")}</div></div>
   <div class="card"><h3>Estimator wording</h3>${F("settings.headline","Headline")}<div style="height:12px"></div>${F("settings.intro","Introduction",{type:"textarea"})}<div style="height:12px"></div>${F("settings.thankYou","Message after a customer downloads their estimate",{type:"textarea"})}</div>
+  <div class="card"><h3>Photo-realistic renders</h3><p class="hint">Customers can ask your team for a realistic image of the screen on their photo. Requests arrive by email (see the setup guide) and appear in Enquiries with a <span class="status st-render">render</span> tag.</p>
+   <div style="display:grid;gap:14px">${TG("settings.renderOffer","Offer free photo-realistic renders")}${F("settings.renderTurnaround","How quickly you'll send it",{small:"(shown to customers, e.g. \"within 1 working day\")"})}</div></div>
   <div class="card"><h3>Prices &amp; PDF</h3><div class="grid4">${F("settings.currency","Currency symbol")}${F("settings.vatLabel","Tax name")}${F("settings.vatRate","Tax rate",{type:"numu",unit:"%"})}${F("settings.quoteValidDays","Estimate valid for",{type:"numu",unit:"days"})}</div>
    <div style="height:12px"></div>${F("settings.terms","Small print on the PDF",{type:"textarea"})}</div>
   <div class="card"><h3>Size limits</h3><p class="hint">The smallest and largest screen a customer can ask for.</p><div class="grid4">${F("settings.minWidth","Min width",{type:"numu",unit:"m"})}${F("settings.maxWidth","Max width",{type:"numu",unit:"m"})}${F("settings.minHeight","Min height",{type:"numu",unit:"m"})}${F("settings.maxHeight","Max height",{type:"numu",unit:"m"})}</div></div>`;
+},
+meetings(){
+  const g=CFG.engage,nice=d=>d?new Date(d).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}):"";
+  const img=(path,label)=>{const v=getAt(path);return `<div class="field"><label>${label}</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div class="thumb" style="width:70px;height:70px;border-radius:50%;background-color:#e8ebf3;background-size:cover;${v?`background-image:url('${esc(v)}')`:""}">${v?"":"No photo"}</div><button class="btn small" data-act="upload" data-path="${path}">${v?"Change photo":"Upload photo"}</button>${v?`<button class="btn small danger" data-act="clearImg" data-path="${path}">Remove</button>`:""}</div></div>`;};
+  return `<h2 class="title">Demos &amp; meetings</h2><p class="lead">Customers can watch your CMS demo videos, request an in-person CMS demo, or book a meeting with your Sales Director. Requests appear here and are emailed to you.</p>
+  <div class="card"><h3>Requests</h3><p class="hint">Reply to the customer to confirm a time, then mark it Confirmed.</p>
+   ${BK.length?`<div style="overflow-x:auto"><table class="data"><thead><tr><th>Received</th><th>Type</th><th>Customer</th><th>Preferred</th><th>Status</th><th></th></tr></thead><tbody>
+   ${BK.map(b=>`<tr><td>${new Date(b.createdAt).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</td><td><b>${b.type==="demo"?"CMS demo":"Sales meeting"}</b><br><small style="color:var(--soft)">${esc(b.meeting||"")}</small></td>
+    <td><b>${esc(b.name)}</b>${b.company?`<br><small style="color:var(--soft)">${esc(b.company)}</small>`:""}<br><a href="mailto:${esc(b.email)}">${esc(b.email)}</a>${b.phone?`<br><small>${esc(b.phone)}</small>`:""}</td>
+    <td>${[nice(b.date1),nice(b.date2)].filter(Boolean).join(" or ")||"Any date"}<br><small style="color:var(--soft)">${esc(b.time||"")}</small>${b.location?`<br><small>${esc(b.location)}</small>`:""}${b.message?`<br><small style="color:var(--soft)">“${esc(b.message)}”</small>`:""}${b.estimateRef?`<br><small>Estimate ${esc(b.estimateRef)}</small>`:""}</td>
+    <td><select data-bk="${esc(b.id)}" style="width:auto">${["new","confirmed","done","cancelled"].map(s=>`<option value="${s}" ${b.status===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></td>
+    <td><button class="iconbtn" data-act="bkDel" data-id="${esc(b.id)}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">No requests yet.</div>'}</div>
+  <div class="card"><h3>CMS demo videos</h3><p class="hint">Paste a YouTube, Vimeo or direct MP4 link for each video. Videos without a link are hidden. Press <b>Save changes</b> at the top when done.</p>
+   <div style="margin-bottom:14px">${TG("engage.videosEnabled","Show demo videos to customers")}</div>
+   <div class="grid2">${F("engage.videosTitle","Section title")}${F("engage.videosIntro","Short description")}</div>
+   ${(g.videos||[]).map((v,i)=>`<div class="pcard" style="margin-top:14px"><div class="phead"><b>${esc(v.title||"Untitled video")}</b>${v.url?`<a class="btn small" href="${esc(v.url)}" target="_blank" rel="noopener">Test link ↗</a>`:'<span class="status st-new">needs a link</span>'}
+     <button class="iconbtn" data-act="mv" data-list="engage.videos" data-i="${i}" data-d="-1" ${i===0?"disabled":""} title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 15l6-6 6 6"/></svg></button>
+     <button class="iconbtn" data-act="mv" data-list="engage.videos" data-i="${i}" data-d="1" ${i===g.videos.length-1?"disabled":""} title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg></button>
+     <button class="iconbtn" data-act="del" data-list="engage.videos" data-i="${i}" data-name="${esc(v.title)}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
+     <div class="pbody"><div class="grid2">${F(`engage.videos.${i}.title`,"Title")}${F(`engage.videos.${i}.url`,"Video link",{small:"(YouTube, Vimeo or .mp4)"})}</div>${F(`engage.videos.${i}.description`,"Short description")}</div></div>`).join("")}
+   <button class="btn primary" style="margin-top:14px" data-act="addVideo">＋ Add a video</button></div>
+  <div class="card"><h3>In-person CMS demo</h3><div style="margin-bottom:14px">${TG("engage.demoEnabled","Let customers book an in-person demo")}</div>
+   <div class="grid2">${F("engage.demoTitle","Title")}${F("engage.demoLink","Booking link",{small:"(optional: Calendly, Microsoft Bookings… leave empty to use the request form)"})}</div><div style="height:12px"></div>${F("engage.demoIntro","Description",{type:"textarea"})}</div>
+  <div class="card"><h3>Meeting with your Sales Director</h3><div style="margin-bottom:14px">${TG("engage.salesEnabled","Let customers book a meeting")}</div>
+   <div class="grid3">${F("engage.salesName","Name")}${F("engage.salesRole","Job title")}${F("engage.salesTitle","Card title")}</div><div style="height:12px"></div>
+   ${img("engage.salesPhoto","Photo")}
+   <div class="grid2">${F("engage.salesLink","Booking link",{small:"(optional, leave empty to use the request form)"})}${F("engage.salesIntro","Description")}</div></div>`;
 },
 history(){setTimeout(loadHistory);return `<h2 class="title">Past versions</h2><p class="lead">Every time you save, a copy is kept (the last 20). Restore one if a price change went wrong, then press <b>Save changes</b>.</p><div class="card" id="hist">Loading…</div>`;}
 };
@@ -291,7 +329,10 @@ $("view").addEventListener("click",async e=>{
   if(a==="addProduct"){CFG.products.push({id:uid("p"),name:"New screen",environment:"indoor",pitch:3,pricePerM2:1000,cabinetW:500,cabinetH:500,brightness:800,powerMax:600,powerAvg:200,weight:30,description:"",visible:true});dirty();render();setTimeout(()=>document.querySelector(".pcard:last-of-type input")?.select());}
   if(a==="addExtra"){CFG.extras.push({id:uid("x"),name:"New extra",type:"fixed",amount:0,mode:"optional-off",appliesTo:"all",visible:true});dirty();render();}
   if(a==="color"){CFG.settings.accent=b.dataset.val;document.documentElement.style.setProperty("--accent",b.dataset.val);dirty();render();}
-  if(a==="upload"){$("filePick").click();}
+  if(a==="upload"){uploadTarget=b.dataset.path||"settings.logo";$("filePick").click();}
+  if(a==="clearImg"){setAt(b.dataset.path,"");dirty();render();}
+  if(a==="addVideo"){CFG.engage.videos=CFG.engage.videos||[];CFG.engage.videos.push({id:uid("v"),title:"New video",url:"",description:""});dirty();render();}
+  if(a==="bkDel"){if(!(await ask("Delete this request?","It will be removed for good.","Delete")))return;try{await api("booking/"+encodeURIComponent(b.dataset.id),{method:"DELETE"});BK=BK.filter(x=>x.id!==b.dataset.id);updateCount();render();toast("Deleted.");}catch(err){toast(err.message);}}
   if(a==="clearLogo"){CFG.settings.logo="";dirty();render();}
   if(a==="restore"){if(!(await ask("Restore this version?","It replaces what's on screen here. Press Save changes afterwards to make it live.","Restore")))return;try{CFG=await api("restore",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({key:b.dataset.key})});dirty();toast("Restored. Press Save changes to make it live.");go("products");}catch(err){toast(err.message);}}
   if(a==="backEnq"){openEnq=null;render();}
@@ -301,22 +342,33 @@ $("view").addEventListener("click",async e=>{
 });
 $("view").addEventListener("change",async e=>{
   if(e.target.id==="fStatus"){enqFilter=e.target.value;render();}
+  if(e.target.dataset&&e.target.dataset.bk){const id=e.target.dataset.bk,b2=BK.find(x=>x.id===id);try{const r=await api("booking/"+encodeURIComponent(id),{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({status:e.target.value})});Object.assign(b2,r);updateCount();toast("Updated.");}catch(err){toast(err.message);}return;}
+  if(e.target.id==="renderStatus"){const e2=ENQ.find(x=>x.id===openEnq);try{const r=await api("enquiry/"+encodeURIComponent(openEnq),{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({render:e.target.value})});Object.assign(e2,r);toast("Render status updated.");}catch(err){toast(err.message);}}
   if(e.target.id==="enqStatus"){const e2=ENQ.find(x=>x.id===openEnq);try{const r=await api("enquiry/"+encodeURIComponent(openEnq),{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({status:e.target.value})});Object.assign(e2,r);updateCount();toast("Status updated.");}catch(err){toast(err.message);}}
 });
 $("view").addEventListener("click",e=>{if(e.target.id==="refreshEnq")loadEnquiries().then(render);if(e.target.id==="csvBtn")downloadCsv();});
-$("filePick").onchange=async()=>{const f=$("filePick").files[0];if(!f)return;try{const blob=f.type==="image/svg+xml"?f:await shrink(f,600);const r=await api("upload",{method:"POST",headers:{"content-type":blob.type},body:blob});CFG.settings.logo=r.url;dirty();render();toast("Logo uploaded. Press Save changes to use it.");}catch(err){toast(err.message);}$("filePick").value="";};
+$("filePick").onchange=async()=>{const f=$("filePick").files[0];if(!f)return;try{const blob=f.type==="image/svg+xml"?f:await shrink(f,600);const r=await api("upload",{method:"POST",headers:{"content-type":blob.type},body:blob});setAt(uploadTarget,r.url);dirty();render();toast("Image uploaded. Press Save changes to use it.");}catch(err){toast(err.message);}$("filePick").value="";};
 function shrink(file,max){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const k=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);c.toBlob(b=>b?res(b):rej(new Error("Couldn't read that image.")),"image/png");};img.onerror=()=>rej(new Error("Couldn't read that image. Try a PNG or JPG."));img.src=URL.createObjectURL(file);});}
 
 /* ---------- enquiries ---------- */
-async function loadEnquiries(){try{ENQ=await api("enquiries");}catch(e){ENQ=[];}updateCount();}
-function updateCount(){const n=ENQ.filter(e=>e.status==="new").length;$("newCount").textContent=n;$("newCount").hidden=!n;}
+let uploadTarget="settings.logo",BK=[];
+async function loadEnquiries(){try{ENQ=await api("enquiries");}catch(e){ENQ=[];}try{BK=await api("bookings");}catch(e){BK=[];}updateCount();}
+function updateCount(){const n=ENQ.filter(e=>e.status==="new").length;$("newCount").textContent=n;$("newCount").hidden=!n;
+  const b=BK.filter(x=>x.status==="new").length;$("bookCount").textContent=b;$("bookCount").hidden=!b;}
 function enquiryDetail(id){
   const e=ENQ.find(x=>x.id===id);if(!e){openEnq=null;return VIEWS.enquiries();}
   const c=e.customer,q=e.quote,cur=CFG.settings.currency,subject=encodeURIComponent(`Your LED screen estimate ${e.ref}`);
   return `<p><button class="btn small" data-act="backEnq">← All enquiries</button></p>
   <h2 class="title">${esc(c.name)}${c.company?` · ${esc(c.company)}`:""}</h2><p class="lead">${esc(e.ref)} · ${new Date(e.createdAt).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</p>
   <div class="detail"><div>
-   <div class="card">${e.mockup?`<img src="${esc(e.mockup)}" alt="Customer's mockup">`:'<div class="empty">No mockup image</div>'}</div>
+   ${e.render?`<div class="card" style="border-color:#c9b3f5;background:#faf6ff"><h3>Photo-realistic render requested</h3><p class="hint">Download the customer's photo and their mockup, make the render (e.g. in Higgsfield), then email it to the customer.</p>
+     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select id="renderStatus" style="width:auto">${[["requested","To do"],["in-progress","In progress"],["sent","Sent to customer"]].map(([v,l])=>`<option value="${v}" ${e.render===v?"selected":""}>${l}</option>`).join("")}</select>
+     ${e.photo?`<a class="btn small" href="${esc(e.photo)}" download="${esc(e.ref)}-site-photo.jpg" target="_blank" rel="noopener">Download site photo</a>`:""}
+     ${e.mockup?`<a class="btn small" href="${esc(e.mockup)}" download="${esc(e.ref)}-mockup.jpg" target="_blank" rel="noopener">Download mockup</a>`:""}
+     <a class="btn small primary" href="mailto:${esc(e.customer.email)}?subject=${encodeURIComponent("Your LED screen render "+e.ref)}&body=${encodeURIComponent("Hi "+e.customer.name.split(" ")[0]+",\n\nPlease find attached a photo-realistic render of your new LED screen.\n\n")}">Email render to customer</a></div>
+     <p class="hint" style="margin:10px 0 0">Time of day they chose: <b>${e.night?"Night":"Day"}</b></p></div>`:""}
+   <div class="card">${e.mockup?`<img src="${esc(e.mockup)}" alt="Customer's mockup">`:'<div class="empty">No mockup image</div>'}
+    ${e.photo?`<p class="hint" style="margin:12px 0 6px">Original site photo</p><img src="${esc(e.photo)}" alt="Customer's site photo">`:""}</div>
    <div class="card"><h3>Estimate</h3>${q.lines.map(l=>`<div class="ln"><span>${esc(l.name)}</span><b>${money(l.amount,cur)}</b></div>`).join("")}
     <div class="ln"><span>Subtotal</span><b>${money(q.subtotal,cur)}</b></div><div class="ln"><span>${esc(CFG.settings.vatLabel)}</span><b>${money(q.vat,cur)}</b></div><div class="ln" style="border:0;font-size:18px"><span><b>Total</b></span><b>${money(q.total,cur)}</b></div></div>
   </div><div>
