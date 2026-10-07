@@ -69,7 +69,24 @@
     const [a, b, c, d, e, f, g2, h, i] = m, A = e * i - f * h, B = -(d * i - f * g2), C = d * h - e * g2, det = a * A + b * B + c * C;
     return [A / det, -(b * i - c * h) / det, (b * f - c * e) / det, B / det, (a * i - c * g2) / det, -(a * f - c * d) / det, C / det, -(a * h - b * g2) / det, (a * e - b * d) / det];
   }
-  // Render photo + warped content into a canvas (used for the PDF and saved enquiry).
+  // Render photo + warped content into a canvas, with realism effects.
+  // opts: maxSize, brightness (0.6-1.4), night (bool), cols/rows (panel seams), frame (bool, default true)
+  function softBlur(srcCanvas, factor) { // cheap, portable blur: shrink then enlarge
+    const w = Math.max(2, Math.round(srcCanvas.width / factor)), h = Math.max(2, Math.round(srcCanvas.height / factor));
+    const t = document.createElement("canvas"); t.width = w; t.height = h; const tx = t.getContext("2d");
+    tx.imageSmoothingEnabled = true; tx.imageSmoothingQuality = "high"; tx.drawImage(srcCanvas, 0, 0, w, h);
+    const t2 = document.createElement("canvas"); t2.width = Math.max(2, w >> 1); t2.height = Math.max(2, h >> 1);
+    t2.getContext("2d").drawImage(t, 0, 0, t2.width, t2.height);
+    return t2;
+  }
+  function luminanceAround(ctx, x0, y0, w, h) {
+    try {
+      const pad = Math.round(Math.max(w, h) * .3), X = Math.max(0, x0 - pad), Y = Math.max(0, y0 - pad);
+      const d = ctx.getImageData(X, Y, Math.max(1, Math.min(ctx.canvas.width - X, w + 2 * pad)), Math.max(1, Math.min(ctx.canvas.height - Y, h + 2 * pad))).data;
+      let sum = 0, n = 0; for (let i = 0; i < d.length; i += 64) { sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; n++; }
+      return n ? sum / n / 255 : .5;
+    } catch (e) { return .5; }
+  }
   function renderMockup(photo, content, quad, opts = {}) {
     const W = photo.naturalWidth || photo.width, Hh = photo.naturalHeight || photo.height;
     const scale = Math.min(1, (opts.maxSize || 1800) / Math.max(W, Hh));
@@ -77,26 +94,77 @@
     const out = document.createElement("canvas"); out.width = cw; out.height = chh;
     const x = out.getContext("2d"); x.drawImage(photo, 0, 0, cw, chh);
     const q = quad.map(([u, v]) => [u * cw, v * chh]);
-    const sw = content.width, sh = content.height;
-    const src = content.getContext("2d").getImageData(0, 0, sw, sh).data;
-    const Hm = homography(sw, sh, q), Hi = invert(Hm);
     const xs = q.map((p) => p[0]), ys = q.map((p) => p[1]);
-    const x0 = Math.max(0, Math.floor(Math.min(...xs))), x1 = Math.min(cw - 1, Math.ceil(Math.max(...xs)));
-    const y0 = Math.max(0, Math.floor(Math.min(...ys))), y1 = Math.min(chh - 1, Math.ceil(Math.max(...ys)));
+    const qx0 = Math.min(...xs), qy0 = Math.min(...ys), qw = Math.max(...xs) - qx0, qh = Math.max(...ys) - qy0;
+    const ambient = luminanceAround(x, Math.round(qx0), Math.round(qy0), Math.round(qw), Math.round(qh));
+    const night = !!opts.night, bright = opts.brightness ?? 1, frame = opts.frame !== false;
+
+    // night: darken the scene, keep a little blue sky light
+    if (night) { x.fillStyle = "rgba(8,12,32,.74)"; x.fillRect(0, 0, cw, chh); }
+
+    // scale content to roughly its on-screen size so sampling stays sharp
+    const edge = Math.max(Math.hypot(q[1][0] - q[0][0], q[1][1] - q[0][1]), Math.hypot(q[2][0] - q[3][0], q[2][1] - q[3][1]));
+    const sw = Math.max(32, Math.min(content.width * 2, Math.round(edge * 1.1))), sh = Math.max(16, Math.round(sw * content.height / content.width));
+    const sc = document.createElement("canvas"); sc.width = sw; sc.height = sh;
+    const scx = sc.getContext("2d"); scx.imageSmoothingQuality = "high"; scx.drawImage(content, 0, 0, sw, sh);
+    const src = scx.getImageData(0, 0, sw, sh).data;
+    const Hm = homography(sw, sh, q), Hi = invert(Hm);
+    const map = (px, py) => { const z = Hm[6] * px + Hm[7] * py + Hm[8]; return [(Hm[0] * px + Hm[1] * py + Hm[2]) / z, (Hm[3] * px + Hm[4] * py + Hm[5]) / z]; };
+
+    // shadow + bezel (cabinet edge) drawn as a slightly larger quad
+    if (frame) {
+      const m = sw * .012, bez = [map(-m, -m), map(sw + m, -m), map(sw + m, sh + m), map(-m, sh + m)];
+      x.save();
+      x.shadowColor = night ? "rgba(0,0,0,.25)" : "rgba(0,0,0,.45)"; x.shadowBlur = Math.max(4, qw * .03);
+      x.shadowOffsetX = qw * .006; x.shadowOffsetY = qh * .02;
+      x.fillStyle = "#121314"; x.beginPath(); bez.forEach((p, i) => (i ? x.lineTo(...p) : x.moveTo(...p))); x.closePath(); x.fill();
+      x.restore();
+      x.strokeStyle = "rgba(255,255,255,.08)"; x.lineWidth = Math.max(1, cw / 1400); x.stroke();
+    }
+
+    // warp the content into its own layer (transparent outside the screen)
+    const x0 = Math.max(0, Math.floor(qx0)), x1 = Math.min(cw - 1, Math.ceil(qx0 + qw));
+    const y0 = Math.max(0, Math.floor(qy0)), y1 = Math.min(chh - 1, Math.ceil(qy0 + qh));
+    const layer = document.createElement("canvas");
     if (x1 > x0 && y1 > y0) {
-      const img = x.getImageData(x0, y0, x1 - x0 + 1, y1 - y0 + 1), d = img.data, bw = x1 - x0 + 1;
-      const bright = opts.brightness ?? 1;
+      const bw = x1 - x0 + 1, bh = y1 - y0 + 1; layer.width = bw; layer.height = bh;
+      const lx = layer.getContext("2d"), img = lx.createImageData(bw, bh), d = img.data;
+      const cols = Math.max(1, opts.cols || 1), rows = Math.max(1, opts.rows || 1);
+      const cellW = sw / cols, cellH = sh / rows, seam = Math.max(.6, (sw / Math.max(1, edge)) * 1.1);
+      const lift = night ? 0 : Math.min(40, ambient * 38); // daylight washes out the blacks a little
+      const gain = bright * (night ? 1.05 : 1);
       for (let yy = y0; yy <= y1; yy++) for (let xx = x0; xx <= x1; xx++) {
-        const px = xx + 0.5, py = yy + 0.5, z = Hi[6] * px + Hi[7] * py + Hi[8];
+        const px = xx + .5, py = yy + .5, z = Hi[6] * px + Hi[7] * py + Hi[8];
         const sx = (Hi[0] * px + Hi[1] * py + Hi[2]) / z, sy = (Hi[3] * px + Hi[4] * py + Hi[5]) / z;
         if (sx < 0 || sy < 0 || sx >= sw || sy >= sh) continue;
         const si = ((sy | 0) * sw + (sx | 0)) * 4, di = ((yy - y0) * bw + (xx - x0)) * 4;
-        d[di] = Math.min(255, src[si] * bright); d[di + 1] = Math.min(255, src[si + 1] * bright); d[di + 2] = Math.min(255, src[si + 2] * bright); d[di + 3] = 255;
+        let k = gain;
+        if (cols > 1 || rows > 1) { const mx = sx % cellW, my = sy % cellH; if ((cols > 1 && (mx < seam || cellW - mx < seam * .5)) || (rows > 1 && (my < seam || cellH - my < seam * .5))) k *= .72; }
+        d[di] = Math.min(255, lift + src[si] * k); d[di + 1] = Math.min(255, lift + src[si + 1] * k); d[di + 2] = Math.min(255, lift + src[si + 2] * k); d[di + 3] = 255;
       }
-      x.putImageData(img, x0, y0);
+      lx.putImageData(img, 0, 0);
+
+      // glow: light from the screen spilling onto the wall
+      // pad with empty space first so the glow fades out softly instead of ending in a hard box
+      const pad = Math.round(Math.max(bw, bh) * (night ? .45 : .25));
+      const padded = document.createElement("canvas"); padded.width = bw + 2 * pad; padded.height = bh + 2 * pad;
+      padded.getContext("2d").drawImage(layer, pad, pad);
+      const blur = softBlur(softBlur(padded, 6), 3);
+      x.save(); x.globalCompositeOperation = "screen"; x.globalAlpha = night ? .55 : .14;
+      x.imageSmoothingEnabled = true; x.imageSmoothingQuality = "high";
+      x.drawImage(blur, x0 - pad, y0 - pad, padded.width, padded.height);
+      if (night) { x.globalAlpha = .35; x.drawImage(softBlur(padded, 3), x0 - pad, y0 - pad, padded.width, padded.height); }
+      x.restore();
+
+      x.drawImage(layer, x0, y0);
+
+      // glass sheen across the face of the screen
+      x.save(); x.beginPath(); q.forEach((p, i) => (i ? x.lineTo(...p) : x.moveTo(...p))); x.closePath(); x.clip();
+      const gr = x.createLinearGradient(q[0][0], q[0][1], q[2][0], q[2][1]);
+      const a = night ? .05 : .07 + ambient * .1;
+      gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(.45, "rgba(255,255,255,0)"); gr.addColorStop(1, `rgba(255,255,255,${a * .4})`);
+      x.fillStyle = gr; x.fillRect(x0, y0, bw, bh); x.restore();
     }
-    // thin frame
-    x.strokeStyle = "rgba(20,20,20,.9)"; x.lineWidth = Math.max(2, cw / 500); x.beginPath(); q.forEach((p, i) => (i ? x.lineTo(...p) : x.moveTo(...p))); x.closePath(); x.stroke();
     return out;
   }
 
