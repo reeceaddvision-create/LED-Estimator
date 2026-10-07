@@ -17,23 +17,183 @@
   "minWidth": 0.5,
   "maxWidth": 30,
   "minHeight": 0.5,
-  "maxHeight": 15
+  "maxHeight": 15,
+  "renderOffer": true,
+  "renderTurnaround": "within 1 working day"
  },
  "products": [
-  {"id":"in25","name":"Indoor P2.5","environment":"indoor","pitch":2.5,"pricePerM2":1450,"cabinetW":640,"cabinetH":480,"brightness":800,"powerMax":600,"powerAvg":200,"weight":30,"description":"Crisp detail for receptions, retail and meeting rooms.","visible":true},
-  {"id":"in39","name":"Indoor P3.9","environment":"indoor","pitch":3.9,"pricePerM2":980,"cabinetW":500,"cabinetH":500,"brightness":900,"powerMax":550,"powerAvg":180,"weight":28,"description":"Great value for halls, venues and stages.","visible":true},
-  {"id":"out4","name":"Outdoor P4","environment":"outdoor","pitch":4,"pricePerM2":1650,"cabinetW":960,"cabinetH":960,"brightness":6000,"powerMax":800,"powerAvg":280,"weight":40,"description":"Weatherproof and sharp enough for close viewing.","visible":true},
-  {"id":"out6","name":"Outdoor P6.67","environment":"outdoor","pitch":6.67,"pricePerM2":1250,"cabinetW":960,"cabinetH":960,"brightness":6500,"powerMax":750,"powerAvg":260,"weight":38,"description":"Popular for shop fronts and car parks.","visible":true},
-  {"id":"out10","name":"Outdoor P10","environment":"outdoor","pitch":10,"pricePerM2":950,"cabinetW":960,"cabinetH":960,"brightness":7000,"powerMax":700,"powerAvg":240,"weight":36,"description":"Large billboards seen from a distance.","visible":true}
+  {
+   "id": "in25",
+   "name": "Indoor P2.5",
+   "environment": "indoor",
+   "pitch": 2.5,
+   "pricePerM2": 1450,
+   "cabinetW": 640,
+   "cabinetH": 480,
+   "brightness": 800,
+   "powerMax": 600,
+   "powerAvg": 200,
+   "weight": 30,
+   "description": "Crisp detail for receptions, retail and meeting rooms.",
+   "visible": true
+  },
+  {
+   "id": "in39",
+   "name": "Indoor P3.9",
+   "environment": "indoor",
+   "pitch": 3.9,
+   "pricePerM2": 980,
+   "cabinetW": 500,
+   "cabinetH": 500,
+   "brightness": 900,
+   "powerMax": 550,
+   "powerAvg": 180,
+   "weight": 28,
+   "description": "Great value for halls, venues and stages.",
+   "visible": true
+  },
+  {
+   "id": "out4",
+   "name": "Outdoor P4",
+   "environment": "outdoor",
+   "pitch": 4,
+   "pricePerM2": 1650,
+   "cabinetW": 960,
+   "cabinetH": 960,
+   "brightness": 6000,
+   "powerMax": 800,
+   "powerAvg": 280,
+   "weight": 40,
+   "description": "Weatherproof and sharp enough for close viewing.",
+   "visible": true
+  },
+  {
+   "id": "out6",
+   "name": "Outdoor P6.67",
+   "environment": "outdoor",
+   "pitch": 6.67,
+   "pricePerM2": 1250,
+   "cabinetW": 960,
+   "cabinetH": 960,
+   "brightness": 6500,
+   "powerMax": 750,
+   "powerAvg": 260,
+   "weight": 38,
+   "description": "Popular for shop fronts and car parks.",
+   "visible": true
+  },
+  {
+   "id": "out10",
+   "name": "Outdoor P10",
+   "environment": "outdoor",
+   "pitch": 10,
+   "pricePerM2": 950,
+   "cabinetW": 960,
+   "cabinetH": 960,
+   "brightness": 7000,
+   "powerMax": 700,
+   "powerAvg": 240,
+   "weight": 36,
+   "description": "Large billboards seen from a distance.",
+   "visible": true
+  }
  ],
  "extras": [
-  {"id":"install","name":"Installation","type":"perM2","amount":180,"mode":"included","appliesTo":"all","visible":true},
-  {"id":"frame","name":"Steel mounting frame","type":"perM2","amount":220,"mode":"included","appliesTo":"outdoor","visible":true},
-  {"id":"wallmount","name":"Wall mounting brackets","type":"perM2","amount":90,"mode":"included","appliesTo":"indoor","visible":true},
-  {"id":"controller","name":"Video controller and media player","type":"fixed","amount":850,"mode":"included","appliesTo":"all","visible":true},
-  {"id":"delivery","name":"Delivery and commissioning","type":"fixed","amount":450,"mode":"included","appliesTo":"all","visible":true},
-  {"id":"cms","name":"Content management software (first year)","type":"fixed","amount":360,"mode":"optional-on","appliesTo":"all","visible":true},
-  {"id":"warranty","name":"Extended 5-year warranty","type":"percent","amount":8,"mode":"optional-off","appliesTo":"all","visible":true},
-  {"id":"content","name":"Launch content design pack","type":"fixed","amount":495,"mode":"optional-off","appliesTo":"all","visible":true}
- ]
+  {
+   "id": "install",
+   "name": "Installation",
+   "type": "perM2",
+   "amount": 180,
+   "mode": "included",
+   "appliesTo": "all",
+   "visible": true
+  },
+  {
+   "id": "frame",
+   "name": "Steel mounting frame",
+   "type": "perM2",
+   "amount": 220,
+   "mode": "included",
+   "appliesTo": "outdoor",
+   "visible": true
+  },
+  {
+   "id": "wallmount",
+   "name": "Wall mounting brackets",
+   "type": "perM2",
+   "amount": 90,
+   "mode": "included",
+   "appliesTo": "indoor",
+   "visible": true
+  },
+  {
+   "id": "controller",
+   "name": "Video controller and media player",
+   "type": "fixed",
+   "amount": 850,
+   "mode": "included",
+   "appliesTo": "all",
+   "visible": true
+  },
+  {
+   "id": "delivery",
+   "name": "Delivery and commissioning",
+   "type": "fixed",
+   "amount": 450,
+   "mode": "included",
+   "appliesTo": "all",
+   "visible": true
+  },
+  {
+   "id": "cms",
+   "name": "Content management software (first year)",
+   "type": "fixed",
+   "amount": 360,
+   "mode": "optional-on",
+   "appliesTo": "all",
+   "visible": true
+  },
+  {
+   "id": "warranty",
+   "name": "Extended 5-year warranty",
+   "type": "percent",
+   "amount": 8,
+   "mode": "optional-off",
+   "appliesTo": "all",
+   "visible": true
+  },
+  {
+   "id": "content",
+   "name": "Launch content design pack",
+   "type": "fixed",
+   "amount": 495,
+   "mode": "optional-off",
+   "appliesTo": "all",
+   "visible": true
+  }
+ ],
+ "engage": {
+  "videosEnabled": true,
+  "videosTitle": "Watch our CMS demo videos",
+  "videosIntro": "See how easy it is to update your screen's content from any computer or phone.",
+  "videos": [
+   {
+    "id": "v1",
+    "title": "CMS overview (2 minutes)",
+    "url": "",
+    "description": "Add your first demo video link in the admin page."
+   }
+  ],
+  "demoEnabled": true,
+  "demoTitle": "Book an in-person CMS demo",
+  "demoIntro": "We'll come to you, or you can visit our showroom, and walk you through the content management software on a real screen.",
+  "demoLink": "",
+  "salesEnabled": true,
+  "salesTitle": "Meet our Sales Director",
+  "salesName": "",
+  "salesRole": "Sales Director",
+  "salesPhoto": "",
+  "salesIntro": "Talk through your project, budget and timescales with our Sales Director.",
+  "salesLink": ""
+ }
 }
