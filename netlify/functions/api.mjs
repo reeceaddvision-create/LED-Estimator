@@ -83,10 +83,11 @@ export default async (req, context) => {
       };
       const mockupUrl = await saveJpeg(b.mockup, "mockup");
       const photoUrl = b.photoIsOwn ? await saveJpeg(b.photo, "photo") : "";
+      const artUrl = await saveJpeg(b.artwork, "artwork");
       const q = b.quote;
       const record = {
         id: ref, ref, createdAt: now.toISOString(), status: "new", note: "",
-        render: b.render ? "requested" : "", night: !!b.night,
+        render: b.render ? "requested" : "", night: !!b.night, placement: clean(b.placement, 1000),
         customer: { name: clean(c.name, 100), company: clean(c.company, 120), email: clean(c.email, 160), phone: clean(c.phone, 40), postcode: clean(c.postcode, 20), message: clean(c.message, 2000) },
         quote: {
           productId: clean(q.productId, 40), productName: clean(q.productName, 80), environment: clean(q.environment, 20),
@@ -95,10 +96,10 @@ export default async (req, context) => {
           lines: Array.isArray(q.lines) ? q.lines.slice(0, 20).map((l) => ({ name: clean(l.name, 160), amount: Number(l.amount) || 0 })) : [],
           subtotal: Number(q.subtotal) || 0, vat: Number(q.vat) || 0, total: Number(q.total) || 0
         },
-        mockup: mockupUrl, photo: photoUrl
+        mockup: mockupUrl, photo: photoUrl, artwork: artUrl
       };
       await store("enquiries").setJSON(ref, record);
-      return json({ ok: true, ref, date: now.toISOString(), mockup: mockupUrl, photo: photoUrl });
+      return json({ ok: true, ref, date: now.toISOString(), mockup: mockupUrl, photo: photoUrl, artwork: artUrl });
     }
     if (path === "booking" && m === "POST") {
       if (limited("book:" + ip, 8, 60)) return fail(429, "Too many requests. Please try again later.");
@@ -196,7 +197,7 @@ export default async (req, context) => {
       }
       if (m === "DELETE") {
         await es.delete(id);
-        for (const f of [rec.mockup, rec.photo]) if (f) await store("uploads").delete(f.replace("/api/file/", ""));
+        for (const f of [rec.mockup, rec.photo, rec.artwork]) if (f) await store("uploads").delete(f.replace("/api/file/", ""));
         return json({ ok: true });
       }
     }
