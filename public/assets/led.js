@@ -242,7 +242,7 @@
     if (info.mockup) {
       const r = info.mockupW / info.mockupH; let w = W - 2 * M, h = w / r; if (h > 82) { h = 82; w = h * r; }
       doc.addImage(info.mockup, "JPEG", (W - w) / 2, y, w, h); y += h + 3;
-      doc.setFontSize(8); doc.setTextColor(110, 116, 135); doc.text("Visualisation for illustration only.", W / 2, y + 2, { align: "center" }); y += 8;
+      doc.setFontSize(8); doc.setTextColor(110, 116, 135); doc.text(info.caption || "Visualisation for illustration only.", W / 2, y + 2, { align: "center" }); y += 8;
     }
     // specs
     doc.setTextColor(30, 35, 50); doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.text("Your screen", M, y); y += 5;
